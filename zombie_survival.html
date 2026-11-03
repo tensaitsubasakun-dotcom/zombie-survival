@@ -1,0 +1,1910 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ゾンビサバイバル - 2D Inventory Rogue-lite</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: DotGothic16 -->
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'DotGothic16', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        /* ピクセルアート風レンダリング */
+        canvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        /* レトロフチとネオン効果 */
+        .pixel-border {
+            border: 4px solid #4c1d95;
+            box-shadow: inset -4px -4px 0px 0px #1e1b4b, inset 4px 4px 0px 0px #8b5cf6, 0 0 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .pixel-card {
+            border: 3px solid #374151;
+            box-shadow: inset -2px -2px 0px 0px #111827, inset 2px 2px 0px 0px #4b5563;
+        }
+
+        .pixel-btn {
+            border: 3px solid #5b21b6;
+            box-shadow: inset -3px -3px 0px 0px #2e1065, inset 3px 3px 0px 0px #a78bfa;
+            transition: all 0.1s ease;
+        }
+        .pixel-btn:hover:not(:disabled) {
+            transform: translate(-1px, -1px);
+            box-shadow: inset -3px -3px 0px 0px #2e1065, inset 3px 3px 0px 0px #c4b5fd, 0 0 10px rgba(167, 139, 250, 0.5);
+        }
+        .pixel-btn:active:not(:disabled) {
+            transform: translate(2px, 2px);
+            box-shadow: inset 3px 3px 0px 0px #2e1065;
+        }
+
+        /* インベントリグリッドのマス目 */
+        .grid-cell {
+            background-color: #111827;
+            border: 1px solid #374151;
+            box-shadow: inset 0 0 6px rgba(0,0,0,0.8);
+        }
+        .grid-cell.blocked {
+            background-color: #1f192b;
+            background-image: repeating-linear-gradient(45deg, #2d1f3f 0, #2d1f3f 5px, #191224 5px, #191224 10px);
+        }
+
+        /* 危険時ゲージ：赤く点滅 */
+        @keyframes gauge-blink {
+            0%, 100% { background-color: #ef4444; box-shadow: 0 0 10px 2px rgba(239, 68, 68, 0.9); }
+            50%      { background-color: #7f1d1d; box-shadow: 0 0 2px 0 rgba(239, 68, 68, 0.3); }
+        }
+        .gauge-danger {
+            background-color: #ef4444 !important;
+            animation: gauge-blink 0.8s ease-in-out infinite;
+        }
+        .gauge-danger-frame {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);
+        }
+        .text-danger-blink {
+            color: #fca5a5 !important;
+            animation: gauge-blink-text 0.8s ease-in-out infinite;
+        }
+        @keyframes gauge-blink-text {
+            0%, 100% { opacity: 1; }
+            50%      { opacity: 0.4; }
+        }
+
+        /* カスタムスクロールバー */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+
+        /* スキャンラインエフェクト */
+        .scanlines {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0, 0, 0, 0.25) 50%,
+                rgba(0, 0, 0, 0.25)
+            );
+            background-size: 100% 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 h-screen w-screen overflow-hidden flex flex-col justify-between">
+
+    <!-- 1. 職業選択モーダル (オーバーレイ) -->
+    <div id="class-select-modal" class="fixed inset-0 z-50 bg-slate-950/95 flex flex-col items-center justify-center p-4">
+        <h1 class="text-3xl md:text-5xl font-bold text-purple-400 mb-2 tracking-wider text-center drop-shadow-[0_0_10px_rgba(168,85,247,0.8)]">
+            ZOMBIE SURVIVAL
+        </h1>
+        <p class="text-sm md:text-base text-slate-400 mb-6 text-center">生き残れ。100フェーズの絶望を、カバンの知恵で突破せよ。</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3 max-w-6xl w-full mb-6" id="class-cards-container">
+            <!-- JSで職業カード動的挿入 -->
+        </div>
+
+        <button id="btn-start-game" disabled onclick="startGame()" class="pixel-btn bg-purple-700 hover:bg-purple-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xl px-12 py-3 rounded">
+            出撃準備完了 (GAME START)
+        </button>
+    </div>
+
+    <!-- 2. ゲーム画面最上部：ステータスHUD (固定) -->
+    <header class="h-[10vh] min-h-[65px] bg-slate-900 border-b-2 border-purple-900 px-4 py-2 flex items-center justify-between z-10 shadow-md">
+        <!-- 進行度情報 -->
+        <div class="flex flex-col flex-1 min-w-0">
+            <span id="hud-stage-name" class="text-xs md:text-sm text-purple-400 font-bold">STAGE 1: 住宅街</span>
+            <span id="hud-phase" class="text-lg md:text-xl font-bold text-yellow-400 tracking-wider">PHASE <span id="val-phase">01</span>/100</span>
+            <div class="flex gap-2 text-[10px] md:text-xs mt-1 font-bold">
+                <span class="text-blue-300 bg-blue-900/50 px-1 rounded border border-blue-800">🏃回避:<span id="val-evasion">50</span>%</span>
+                <span class="text-red-300 bg-red-900/50 px-1 rounded border border-red-800">⚠️遭遇:<span id="val-encounter">20</span>%</span>
+                <span class="text-yellow-300 bg-yellow-900/50 px-1 rounded border border-yellow-700">💰<span id="val-gold">0</span>G</span>
+            </div>
+        </div>
+
+        <!-- ステータスプログレスバー (ヘッダー中央に配置) -->
+        <div id="status-bars" class="flex items-center justify-center space-x-3 md:space-x-6 text-xs md:text-sm">
+            <!-- HP -->
+            <div class="w-24 md:w-36">
+                <div class="flex justify-between mb-1">
+                    <span class="text-red-400 font-bold">❤️ HP</span>
+                    <span id="val-hp-text" class="text-slate-300">100/100</span>
+                </div>
+                <div class="w-full bg-slate-800 h-3 rounded overflow-hidden p-0.5 border border-slate-700">
+                    <div id="bar-hp" class="bg-red-500 h-full transition-all duration-300" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- 汚染度 -->
+            <div class="w-24 md:w-36">
+                <div class="flex justify-between mb-1">
+                    <span class="text-purple-400 font-bold">☣️ 汚染度</span>
+                    <span id="val-infect-text" class="text-slate-300">0%</span>
+                </div>
+                <div class="w-full bg-slate-800 h-3 rounded overflow-hidden p-0.5 border border-slate-700">
+                    <div id="bar-infect" class="bg-purple-600 h-full transition-all duration-300" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- 空腹度 -->
+            <div class="w-24 md:w-36">
+                <div class="flex justify-between mb-1">
+                    <span class="text-orange-400 font-bold">🍖 空腹度</span>
+                    <span id="val-hunger-text" class="text-slate-300">100/100</span>
+                </div>
+                <div class="w-full bg-slate-800 h-3 rounded overflow-hidden p-0.5 border border-slate-700">
+                    <div id="bar-hunger" class="bg-orange-500 h-full transition-all duration-300" style="width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側スペーサー (左の進行度情報と同じ幅を取り、ゲージを中央に寄せる) -->
+        <div class="flex-1 hidden md:block"></div>
+    </header>
+
+    <!-- 3. メインエリア：画面上部 3/4 (2Dゲームビュー＆ログ・アクション) -->
+    <main class="h-[60vh] flex flex-col md:flex-row p-2 gap-2 bg-slate-950 relative overflow-hidden">
+        
+        <!-- 左側 (または全幅)：2D Canvas アニメーション画面 -->
+        <div class="w-full md:w-1/2 h-full relative rounded border-2 border-slate-800 bg-black overflow-hidden flex items-center justify-center">
+            <canvas id="gameCanvas" class="w-full h-full object-cover"></canvas>
+            <div class="scanlines absolute inset-0 pointer-events-none"></div>
+            <!-- Canvasオーバーレイテキスト (イベント通知等) -->
+            <div id="canvas-overlay-text" class="absolute bottom-2 left-2 bg-black/70 px-3 py-1 rounded text-xs text-slate-300 border border-slate-700 pointer-events-none">
+                環境: 降雨 / 遭遇率 標準
+            </div>
+        </div>
+
+        <!-- 右側：イベント＆ダイアログ＆アクション制御パネル -->
+        <div class="w-full md:w-1/2 h-full flex flex-col justify-between bg-slate-900/90 border-2 border-purple-950 p-3 rounded pixel-card">
+            
+            <!-- ログテキスト出力エリア -->
+            <div id="game-log" class="flex-1 overflow-y-auto mb-3 pr-2 space-y-2 text-xs md:text-sm">
+                <!-- ログメッセージがここに動的に追加される -->
+            </div>
+
+            <!-- 動的アクションボタンエリア -->
+            <div id="action-panel" class="min-h-[120px] max-h-[60%] overflow-y-auto bg-slate-950 p-3 rounded border border-purple-900/60 flex flex-col gap-2">
+                <!-- JSでコンテキストに応じたボタンが描画される -->
+            </div>
+        </div>
+    </main>
+
+    <!-- 4. メインエリア：画面下部 1/4 (インベントリ＆スタッシュ) -->
+    <footer class="h-[30vh] min-h-[220px] bg-slate-900 border-t-2 border-purple-900 p-2 flex flex-col md:flex-row gap-3 relative z-10">
+        
+        <!-- 左：インベントリ (カバン 5x3 グリッド) -->
+        <div class="w-full md:w-1/2 h-full bg-slate-950 p-2 rounded border border-slate-800 flex flex-col justify-between">
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-xs md:text-sm text-purple-300 font-bold flex items-center gap-1">
+                    🎒 カバン (<span id="inv-capacity-text">5×3=15マス</span>)
+                </span>
+                <span id="inv-usage-text" class="text-xs text-slate-400">使用: 0/15</span>
+            </div>
+
+            <!-- インベントリグリッド本体 -->
+            <div id="inventory-grid-container" class="flex-1 flex items-center justify-center p-1 overflow-auto">
+                <div id="inventory-grid" class="grid grid-cols-5 gap-1 bg-slate-900 p-1.5 rounded border border-slate-800">
+                    <!-- JSでセルとアイテム要素を重畳描画 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 右：選択中アイテム情報 ＆ アクション操作・拠点時のスタッシュ -->
+        <div class="w-full md:w-1/2 h-full bg-slate-950 p-2 rounded border border-slate-800 flex flex-col justify-between">
+            
+            <!-- 通常時：アイテム情報と個別操作 -->
+            <div id="item-detail-panel" class="h-full flex flex-col justify-between">
+                <div class="flex-1">
+                    <div class="flex justify-between items-start">
+                        <h4 id="item-detail-title" class="text-sm md:text-base font-bold text-yellow-400">アイテムを選択してください</h4>
+                        <span id="item-detail-size" class="text-xs bg-slate-800 px-2 py-0.5 rounded text-slate-400"></span>
+                    </div>
+                    <p id="item-detail-desc" class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        マス目のアイテムをクリックまたはドラッグして選択します。
+                    </p>
+                </div>
+
+                <div class="flex gap-2 mt-2">
+                    <button id="btn-item-rotate" onclick="rotateSelectedItem()" class="pixel-btn flex-1 bg-slate-800 hover:bg-slate-700 text-xs py-2 text-slate-200 rounded disabled:opacity-30" disabled>
+                        🔄 回転 (R)
+                    </button>
+                    <button id="btn-item-use" onclick="useSelectedItem()" class="pixel-btn flex-1 bg-emerald-700 hover:bg-emerald-600 text-xs py-2 text-white rounded disabled:opacity-30" disabled>
+                        ✨ 使用する
+                    </button>
+                    <button id="btn-item-drop" onclick="dropSelectedItem()" class="pixel-btn flex-1 bg-red-900 hover:bg-red-800 text-xs py-2 text-white rounded disabled:opacity-30" disabled>
+                        🗑️ 破棄
+                    </button>
+                </div>
+            </div>
+
+            <!-- 拠点（セーフルーム）時：スタッシュ（保管庫）パネル（初期非表示） -->
+            <div id="stash-panel" class="h-full hidden flex-col justify-between">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-xs md:text-sm text-cyan-300 font-bold">📦 拠点保管庫 (次回プレイへ引き継ぎ)</span>
+                    <span class="text-xs text-slate-400">5×4マス</span>
+                </div>
+                <div class="flex-1 flex items-center justify-center overflow-auto p-1">
+                    <div id="stash-grid" class="grid grid-cols-5 gap-1 bg-slate-900 p-1.5 rounded border border-cyan-900">
+                        <!-- JSで描画 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 拠点（セーフルーム）時：ショップパネル（初期非表示） -->
+            <div id="shop-panel" class="h-full hidden flex-col">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-xs md:text-sm text-yellow-300 font-bold">🛒 ショップ</span>
+                    <span class="text-xs text-yellow-300 font-bold">所持金: <span id="shop-gold">0</span>G</span>
+                </div>
+                <div id="shop-list" class="flex-1 overflow-y-auto space-y-1 pr-1 text-xs">
+                    <!-- JSで商品を描画 -->
+                </div>
+                <div id="shop-sell" class="mt-1 p-1.5 rounded border border-yellow-900/70 bg-slate-900 text-xs">
+                    <!-- JSで売却欄を描画 -->
+                </div>
+            </div>
+
+        </div>
+    </footer>
+
+<script>
+// ==========================================
+// 1. 定数・データデータベース
+// ==========================================
+
+// Web Audio API レトロサウンド効果音生成
+const AudioFX = {
+    ctx: null,
+    init() {
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    },
+    play(type) {
+        try {
+            this.init();
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            const now = this.ctx.currentTime;
+            if (type === 'click') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.05);
+                osc.start(now); osc.stop(now + 0.05);
+            } else if (type === 'shoot') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.15);
+                osc.start(now); osc.stop(now + 0.15);
+            } else if (type === 'hit') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(120, now);
+                osc.frequency.linearRampToValueAtTime(40, now + 0.1);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'heal') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.2);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.2);
+                osc.start(now); osc.stop(now + 0.2);
+            } else if (type === 'item') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.08);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.2);
+                osc.start(now); osc.stop(now + 0.2);
+            } else if (type === 'alarm') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(900, now);
+                osc.frequency.linearRampToValueAtTime(400, now + 0.3);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            }
+        } catch(e) {}
+    }
+};
+
+// 職業定義
+const CLASSES = {
+    police: {
+        id: 'police',
+        name: '警察官',
+        desc: '標準カバン＋ホルスター(2×1)付き。銃撃戦が得意。医療品サイズ+1。',
+        bg: 'bg-blue-950',
+        cols: 5, rows: 3,
+        holster: { w: 2, h: 1 },
+        items: ['handgun', 'ammo', 'bandage']
+    },
+    military: {
+        id: 'military',
+        name: '軍人',
+        desc: 'カバンは4×3(12マス)と狭いが、ハンドガンと多めの弾薬・発煙筒を持って出撃。',
+        bg: 'bg-emerald-950',
+        cols: 4, rows: 3,
+        items: ['handgun', 'ammo', 'ammo', 'flare']
+    },
+    doctor: {
+        id: 'doctor',
+        name: '医師',
+        desc: '医療品の重ね持ち制限が緩い。武器サイズ+1の不器用ペナルティ。',
+        bg: 'bg-purple-950',
+        cols: 5, rows: 3,
+        items: ['antibiotics', 'antibiotics', 'bandage', 'bandage']
+    },
+    hunter: {
+        id: 'hunter',
+        name: '狩人',
+        desc: '逃走成功率が高く、事前偵察アイテム用スロットを所持。',
+        bg: 'bg-amber-950',
+        cols: 5, rows: 3,
+        items: ['camera', 'bandage', 'canned_food']
+    },
+    civilian: {
+        id: 'civilian',
+        name: '民間人',
+        desc: '初期カバンは2×4(8マス)と極小だが、クラフト合成可能。大器晩成。',
+        bg: 'bg-slate-900',
+        cols: 4, rows: 2,
+        items: ['canned_food', 'raw_meat']
+    }
+};
+
+// 全10ステージ定義
+const STAGES = [
+    { name: '農場', desc: 'チュートリアル。遭遇率低。食料が見つかりやすい。', encounter: 0.20, item: 0.30, happening: 0.20, event: 0.10, foodRate: 0.5 },
+    { name: '住宅街', desc: '民家の台所に食料が残っている。', encounter: 0.25, item: 0.35, happening: 0.15, event: 0.15, foodRate: 0.5 },
+    { name: '学校', desc: 'ハプニング多発。校内放送に注意。給食室に食料あり。', encounter: 0.25, item: 0.20, happening: 0.40, event: 0.10, foodRate: 0.5 },
+    { name: '警察署', desc: '銃器・弾薬豊富。遭遇率高。', encounter: 0.45, item: 0.30, happening: 0.10, event: 0.15 },
+    { name: '病院', desc: '滞在で毎ターン汚染度上昇。', encounter: 0.35, item: 0.40, happening: 0.10, event: 0.15, infectPerTurn: 4 },
+    { name: 'モール', desc: '最高レアと最高遭遇率の死地。', encounter: 0.55, item: 0.40, happening: 0.10, event: 0.15 },
+    { name: '空港', desc: '軍事用品。金属探知機リスク。', encounter: 0.35, item: 0.35, happening: 0.15, event: 0.15 },
+    { name: '館', desc: 'ブービートラップ多数。高価値品。', encounter: 0.40, item: 0.30, happening: 0.20, event: 0.15 },
+    { name: '刑務所', desc: '最悪の死地。重装甲ゾンビ。', encounter: 0.65, item: 0.25, happening: 0.05, event: 0.20 },
+    { name: '脱出地点', desc: '最終防衛線。全力を尽くせ！', encounter: 0.70, item: 0.20, happening: 0.00, event: 0.10 }
+];
+
+// ゾンビデータベース
+// hp: ハンドガン何発で倒せるか / immuneTo: 効かない武器 / deathGas: 倒した時に撒き散らす汚染度
+const ZOMBIES = {
+    normal: { name: 'ゾンビ', dmg: 10, evaPenalty: 0, infPenalty: 0, icon: '🧟', hp: 1 },
+    runner: { name: 'ランナー', dmg: 10, evaPenalty: 0.20, infPenalty: 0, icon: '🏃‍♂️', hp: 1 },
+    spreader: { name: 'スプレッダー', dmg: 5, evaPenalty: 0, infPenalty: 10, icon: '🤢', hp: 1, deathGas: 40 },
+    brute: { name: 'ブルート', dmg: 10, evaPenalty: 0, infPenalty: 0, icon: '💪', hp: 3 },
+    horde: { name: 'ゾンビの大群', dmg: 15, evaPenalty: 0.50, infPenalty: 0, icon: '🧟🧟', hp: 1, immuneTo: ['handgun', 'shotgun', 'fist'] },
+    mutant: { name: 'ミュータント', dmg: 40, evaPenalty: 0.10, infPenalty: 15, icon: '👽', hp: 3 }
+};
+
+// 武器データ: power はハンドガン何発分のダメージか
+const WEAPONS = {
+    handgun: { name: 'ハンドガン', icon: '🔫', power: 1, usesAmmo: true, sfx: 'shoot' },
+    shotgun: { name: 'ショットガン', icon: '💥', power: 3, usesAmmo: true, sfx: 'shoot' },
+    rocket_launcher: { name: 'ロケットランチャー', icon: '🚀', power: 999, usesAmmo: false, singleUse: true, sfx: 'shoot' }
+};
+
+// マスターアイテムDB
+const ITEM_DB = {
+    'handgun': { id: 'handgun', name: 'ハンドガン', w: 2, h: 1, type: 'weapon', color: 'bg-blue-800', border: 'border-blue-500', icon: '🔫', desc: '標準的な拳銃。戦闘時、弾薬を1発消費して確実に撃破する。' },
+    'shotgun': { id: 'shotgun', name: 'ショットガン', w: 3, h: 1, type: 'weapon', color: 'bg-red-950', border: 'border-red-600', icon: '💥', desc: '散弾銃。弾薬1発でハンドガン3発分の威力。ブルートやミュータントも一撃。大群には効かない。' },
+    'rocket_launcher': { id: 'rocket_launcher', name: 'ロケットランチャー', w: 3, h: 1, type: 'weapon', color: 'bg-orange-950', border: 'border-orange-500', icon: '🚀', desc: 'どんな敵も一撃で吹き飛ばす。ゾンビの大群を倒せる唯一の武器。撃つと使い切り(弾薬不要)。', weight: 0.3 },
+    'ammo': { id: 'ammo', name: '弾薬(2~3発)', w: 1, h: 1, type: 'ammo', color: 'bg-yellow-900', border: 'border-yellow-500', icon: '🟡', count: 3, maxCount: 12, stackable: true, desc: '銃の射撃に必要な弾丸。拾うと2~3発手に入る。1マスに12発までスタック可能。' },
+    'bandage': { id: 'bandage', name: '包帯', w: 2, h: 1, type: 'heal', color: 'bg-emerald-900', border: 'border-emerald-500', icon: '🩹', desc: '使用するとHPを40回復する。' },
+    'medkit': { id: 'medkit', name: '救急箱', w: 2, h: 2, type: 'heal', color: 'bg-emerald-800', border: 'border-emerald-400', icon: '🧰', desc: '重傷を治療する。使用するとHPを80回復する。' },
+    'antibiotics': { id: 'antibiotics', name: '抗生剤', w: 1, h: 1, type: 'heal', color: 'bg-purple-900', border: 'border-purple-500', icon: '💊', desc: '体内のウイルス増殖を抑え、汚染度を35%低下させる。' },
+    'canned_food': { id: 'canned_food', name: '缶詰', w: 1, h: 1, type: 'food', color: 'bg-amber-900', border: 'border-amber-500', icon: '🥫', desc: '安全な保存食。使用すると空腹度を20回復する。' },
+    'dog_food': { id: 'dog_food', name: 'ドッグフード', w: 1, h: 1, type: 'food', color: 'bg-amber-950', border: 'border-amber-700', icon: '🐶', desc: '空腹度を25回復するが、衛生面から汚染度が+5%上昇する。' },
+    'raw_meat': { id: 'raw_meat', name: '血の滴る生肉', w: 1, h: 2, type: 'food', color: 'bg-red-900', border: 'border-red-500', icon: '🥩', desc: '空腹度を100回復(HP-10ダメ)。投擲で100%逃走。所持中遭遇率+15%。' },
+    'flashlight': { id: 'flashlight', name: '懐中電灯', w: 1, h: 2, type: 'utility', color: 'bg-yellow-900', border: 'border-yellow-400', icon: '🔦', desc: '周囲を明るく照らす。所持しているだけで回避率が+10%される。' },
+    'flare': { id: 'flare', name: '発煙筒', w: 1, h: 1, type: 'utility', color: 'bg-orange-800', border: 'border-orange-500', icon: '🏮', desc: '戦闘時に使用すると、100%安全に確定逃走できる。' },
+    'stethoscope': { id: 'stethoscope', name: '聴診器', w: 1, h: 1, type: 'utility', color: 'bg-cyan-950', border: 'border-cyan-500', icon: '🩺', desc: '固く閉ざされた部屋の扉に当てて、中に罠があるか偵察できる。使うと壊れる(1回限り)。' },
+    'camera': { id: 'camera', name: '小型カメラ', w: 1, h: 2, type: 'utility', color: 'bg-slate-800', border: 'border-slate-500', icon: '📷', desc: 'ハプニングの中身を透視する高機能偵察ツール。' },
+    'crowbar': { id: 'crowbar', name: 'バール', w: 1, h: 3, type: 'utility', color: 'bg-indigo-950', border: 'border-indigo-500', icon: '🔧', desc: '鍵のかかった金庫や扉を確定でこじ開けるツール。かさばる。' },
+    'gas_mask': { id: 'gas_mask', name: 'ガスマスク', w: 2, h: 2, type: 'special', color: 'bg-purple-950', border: 'border-purple-400', icon: '🎭', desc: 'カバンに入っている間、有毒ガスや病院での汚染上昇を無効化する。' },
+    'car_battery': { id: 'car_battery', name: '車のバッテリー', w: 2, h: 2, type: 'special', color: 'bg-slate-900', border: 'border-yellow-600', icon: '🔋', desc: '重く逃走率が-10%下がる重荷。後半の通信機イベントで超有用化。' }
+};
+
+// 売却相場 (G)。弾薬は1発あたりの価格。ショップの販売価格はこの2倍
+const SELL_PRICES = {
+    handgun: 10, ammo: 2, flare: 5, bandage: 5, medkit: 10, stethoscope: 3,
+    car_battery: 10, crowbar: 7, canned_food: 3, dog_food: 2, flashlight: 6,
+    camera: 7, raw_meat: 4
+};
+const SHOP_AMMO_PACK = 3;          // ショップの弾薬は3発セットで販売
+const KILL_REWARD = 3;             // ゾンビ1体撃破の報酬 (G)
+const BACKPACK_PRICE = 20;         // 拡張バックパックの価格 (G)
+const SHOP_SLOTS = 3;              // 店頭に並ぶランダム商品の数
+
+function getSellPrice(item) {
+    const base = SELL_PRICES[item.id];
+    if (base === undefined) return null; // 相場が決まっていないアイテムは売れない
+    return item.id === 'ammo' ? base * (item.count || 0) : base;
+}
+
+function getBuyPrice(itemId) {
+    const base = SELL_PRICES[itemId];
+    return itemId === 'ammo' ? base * 2 * SHOP_AMMO_PACK : base * 2;
+}
+
+// ==========================================
+// 2. ゲーム状態 (State)
+// ==========================================
+let state = {
+    selectedClass: null,
+    phase: 1,
+    hp: 100,
+    maxHp: 100,
+    infection: 0,
+    hunger: 100,
+    maxHunger: 100,
+    
+    // カバン & グリッド設定
+    cols: 5,
+    rows: 3,
+    inventory: [], // [{ id, instanceId, x, y, w, h, count }]
+    
+    // 選択中のアイテム (UI操作用)
+    selectedInstanceId: null,
+
+    // 拠点保管庫 (スタッシュ) 5x4
+    stash: [],
+    
+    // 現在のフェーズイベント状態
+    eventStatus: 'EXPLORE', // EXPLORE, ENCOUNTER, HAPPENING, EVENT, ITEM_FOUND, SHELTER, GAMEOVER, CLEAR
+    foundItems: [],
+    happeningData: null,
+    currentEnemy: null,
+
+    // ショップ・通貨
+    gold: 0,
+    shopStock: [],          // [{ id, sold }]
+    backpackBought: false,  // 拡張バックパックは1ゲーム1回
+    shelterView: 'stash',   // 拠点で表示中のパネル: 'stash' | 'shop'
+    currentEvasion: 0.5,
+    currentEncounter: 0.2
+};
+
+// ==========================================
+// 3. インベントリ物理・グリッド計算ロジック
+// ==========================================
+
+// 新規インスタンスID生成
+function generateId() {
+    return 'item_' + Math.random().toString(36).substr(2, 9);
+}
+
+// アイテム配置可否判定
+function canPlaceItem(items, newItem, targetX, targetY, ignoreInstanceId = null, maxCols = state.cols, maxRows = state.rows) {
+    if (targetX < 0 || targetY < 0 || targetX + newItem.w > maxCols || targetY + newItem.h > maxRows) {
+        return false;
+    }
+
+    for (let item of items) {
+        if (ignoreInstanceId && item.instanceId === ignoreInstanceId) continue;
+        // 矩形の重複チェック
+        const intersect = !(
+            targetX + newItem.w <= item.x ||
+            targetX >= item.x + item.w ||
+            targetY + newItem.h <= item.y ||
+            targetY >= item.y + item.h
+        );
+        if (intersect) return false;
+    }
+    return true;
+}
+
+// 自動空きスペース検索・配置
+function autoAddItemToInventory(itemDbId, customCount = null) {
+    const baseData = ITEM_DB[itemDbId];
+    if (!baseData) return false;
+
+    let addCount = customCount !== null ? customCount : (baseData.id === 'ammo' ? Math.floor(Math.random() * 2) + 2 : (baseData.count || 1));
+
+    // 弾薬などスタック可能な場合の処理
+    if (baseData.stackable) {
+        const existing = state.inventory.find(i => i.id === itemDbId && i.count < i.maxCount);
+        if (existing) {
+            existing.count = Math.min(existing.maxCount, existing.count + addCount);
+            return true;
+        }
+    }
+
+    let newItem = {
+        ...baseData,
+        instanceId: generateId(),
+        count: baseData.stackable ? addCount : undefined,
+        x: 0, y: 0
+    };
+
+    // グリッドを走査して空き場所を探す
+    for (let y = 0; y <= state.rows - newItem.h; y++) {
+        for (let x = 0; x <= state.cols - newItem.w; x++) {
+            if (canPlaceItem(state.inventory, newItem, x, y)) {
+                newItem.x = x;
+                newItem.y = y;
+                state.inventory.push(newItem);
+                return true;
+            }
+        }
+    }
+    return false; // 空きなし
+}
+
+// ==========================================
+// 4. UI 描画システム (DOM & Canvas)
+// ==========================================
+
+function updateCalculatedStats() {
+    // 回避率の計算
+    let baseEva = 0.50;
+    if (state.selectedClass && state.selectedClass.id === 'hunter') baseEva += 0.25;
+    if (state.inventory.some(i => i.id === 'car_battery')) baseEva -= 0.10;
+    if (state.inventory.some(i => i.id === 'flashlight')) baseEva += 0.10;
+    state.currentEvasion = Math.max(0, Math.min(1, baseEva));
+
+    // 遭遇率の計算
+    const stageIdx = Math.min(Math.floor((state.phase - 1) / 10), 9);
+    let baseEnc = STAGES[stageIdx] ? STAGES[stageIdx].encounter : 0.2;
+    if (state.inventory.some(i => i.id === 'raw_meat')) baseEnc += 0.15;
+    state.currentEncounter = Math.max(0, Math.min(1, baseEnc));
+}
+
+function updateHUD() {
+    clampStats();
+    updateCalculatedStats();
+
+    const stageIdx = Math.min(Math.floor((state.phase - 1) / 10), 9);
+    const stage = STAGES[stageIdx];
+
+    document.getElementById('hud-stage-name').textContent = `STAGE ${stageIdx + 1}: ${stage.name}`;
+    document.getElementById('val-phase').textContent = String(Math.min(100, state.phase)).padStart(2, '0');
+
+    const evasionEl = document.getElementById('val-evasion');
+    if (evasionEl) evasionEl.textContent = Math.round(state.currentEvasion * 100);
+    const goldEl = document.getElementById('val-gold');
+    if (goldEl) goldEl.textContent = state.gold;
+    const encounterEl = document.getElementById('val-encounter');
+    if (encounterEl) encounterEl.textContent = Math.round(state.currentEncounter * 100);
+
+    // HP Bar
+    document.getElementById('val-hp-text').textContent = `${Math.max(0, state.hp)}/${state.maxHp}`;
+    document.getElementById('bar-hp').style.width = `${Math.max(0, (state.hp / state.maxHp) * 100)}%`;
+
+    // Infection Bar
+    document.getElementById('val-infect-text').textContent = `${Math.min(100, state.infection)}%`;
+    document.getElementById('bar-infect').style.width = `${Math.min(100, state.infection)}%`;
+
+    // Hunger Bar
+    document.getElementById('val-hunger-text').textContent = `${Math.max(0, state.hunger)}/${state.maxHunger}`;
+    document.getElementById('bar-hunger').style.width = `${Math.max(0, (state.hunger / state.maxHunger) * 100)}%`;
+
+    // 危険時 (30未満) はゲージを赤く点滅
+    setGaugeDanger('bar-hp', 'val-hp-text', state.hp < 30);
+    setGaugeDanger('bar-hunger', 'val-hunger-text', state.hunger < 30);
+
+    // 容量テキスト
+    const usedSpace = state.inventory.reduce((sum, i) => sum + (i.w * i.h), 0);
+    const maxSpace = state.cols * state.rows;
+    document.getElementById('inv-capacity-text').textContent = `${state.cols}×${state.rows}=${maxSpace}マス`;
+    document.getElementById('inv-usage-text').textContent = `使用: ${usedSpace}/${maxSpace}`;
+}
+
+function setGaugeDanger(barId, textId, isDanger) {
+    const bar = document.getElementById(barId);
+    const text = document.getElementById(textId);
+    bar.classList.toggle('gauge-danger', isDanger);
+    bar.parentElement.classList.toggle('gauge-danger-frame', isDanger);
+    text.classList.toggle('text-danger-blink', isDanger);
+}
+
+// インベントリグリッド描画
+function renderInventoryGrid() {
+    const container = document.getElementById('inventory-grid');
+    container.style.gridTemplateColumns = `repeat(${state.cols}, minmax(0, 1fr))`;
+    container.innerHTML = '';
+
+    const cellSize = 44; // px
+    container.style.width = `${state.cols * (cellSize + 4) + 8}px`;
+    container.style.height = `${state.rows * (cellSize + 4) + 8}px`;
+    container.style.position = 'relative';
+
+    // 背景マスの生成
+    for (let r = 0; r < state.rows; r++) {
+        for (let c = 0; c < state.cols; c++) {
+            const cell = document.createElement('div');
+            cell.className = 'grid-cell rounded w-[44px] h-[44px] flex items-center justify-center text-xs text-slate-700 cursor-pointer hover:border-purple-400';
+            cell.dataset.x = c;
+            cell.dataset.y = r;
+            
+            // クリック配置（ドロップはグリッド全体で受け付ける）
+            cell.onclick = () => handleCellClick(c, r, 'inventory');
+
+            container.appendChild(cell);
+        }
+    }
+    container.ondragover = (e) => e.preventDefault();
+    container.ondrop = (e) => handleDropOnGrid(e, container, cellSize, 'inventory');
+
+    // アイテムエレメントの配置 (絶対配置)
+    state.inventory.forEach(item => {
+        const itemEl = createItemDOM(item, cellSize, 'inventory');
+        container.appendChild(itemEl);
+    });
+}
+
+// スタッシュ (保管庫) 描画
+function renderStashGrid() {
+    const container = document.getElementById('stash-grid');
+    const cols = 5, rows = 4;
+    container.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+    container.innerHTML = '';
+    const cellSize = 40;
+    container.style.width = `${cols * (cellSize + 4) + 8}px`;
+    container.style.height = `${rows * (cellSize + 4) + 8}px`;
+    container.style.position = 'relative';
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const cell = document.createElement('div');
+            cell.className = 'grid-cell rounded w-[40px] h-[40px] border border-cyan-900/60 cursor-pointer hover:border-cyan-400';
+            cell.onclick = () => handleCellClick(c, r, 'stash');
+            container.appendChild(cell);
+        }
+    }
+    container.ondragover = (e) => e.preventDefault();
+    container.ondrop = (e) => handleDropOnGrid(e, container, cellSize, 'stash');
+
+    state.stash.forEach(item => {
+        const itemEl = createItemDOM(item, cellSize, 'stash');
+        container.appendChild(itemEl);
+    });
+}
+
+// アイテム DOM 要素生成
+function createItemDOM(item, cellSize, locationType) {
+    const el = document.createElement('div');
+    const isSelected = state.selectedInstanceId === item.instanceId;
+
+    el.className = `absolute rounded p-1 flex flex-col items-center justify-center cursor-pointer transition-all border-2 ${item.color} ${item.border} ${isSelected ? 'ring-2 ring-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.8)] z-20' : 'z-10'}`;
+    
+    const gap = 4;
+    el.style.width = `${item.w * cellSize + (item.w - 1) * gap}px`;
+    el.style.height = `${item.h * cellSize + (item.h - 1) * gap}px`;
+    el.style.left = `${item.x * (cellSize + gap) + 6}px`;
+    el.style.top = `${item.y * (cellSize + gap) + 6}px`;
+
+    el.draggable = true;
+    el.ondragstart = (e) => {
+        // 掴んだ位置（アイテム内の何マス目か）を記録し、ドロップ先の左上を補正する
+        const grabX = Math.floor(e.offsetX / (cellSize + gap));
+        const grabY = Math.floor(e.offsetY / (cellSize + gap));
+        e.dataTransfer.setData('text/plain', JSON.stringify({ instanceId: item.instanceId, from: locationType, grabX, grabY }));
+        e.dataTransfer.effectAllowed = 'move';
+        // ドラッグ中に再描画すると掴んだ要素が消えてドラッグが中断されるため、パネルだけ更新
+        selectItem(item.instanceId, false);
+    };
+
+    el.onclick = (e) => {
+        e.stopPropagation();
+        selectItem(item.instanceId);
+    };
+
+    const countBadge = item.count ? `<span class="absolute bottom-0.5 right-1 bg-black/80 px-1 rounded text-[10px] text-yellow-300 font-bold">${item.count}</span>` : '';
+    
+    el.innerHTML = `
+        <span class="text-base md:text-xl pointer-events-none">${item.icon}</span>
+        <span class="text-[9px] leading-none text-center font-bold text-white/90 truncate w-full pointer-events-none">${item.name}</span>
+        ${countBadge}
+    `;
+
+    return el;
+}
+// 選択中アイテムを指定マスへ移動（成功したら true）
+function tryMoveSelectedItem(x, y, locationType) {
+    if (!state.selectedInstanceId) return false;
+    // 保管庫とのやり取りは拠点にいる時だけ
+    if (locationType === 'stash' && state.eventStatus !== 'SHELTER') return false;
+
+    const inInventory = state.inventory.some(i => i.instanceId === state.selectedInstanceId);
+    if (!inInventory && state.eventStatus !== 'SHELTER') return false;
+
+    const sourceList = inInventory ? state.inventory : state.stash;
+    const targetList = locationType === 'inventory' ? state.inventory : state.stash;
+    const maxC = locationType === 'inventory' ? state.cols : 5;
+    const maxR = locationType === 'inventory' ? state.rows : 4;
+
+    const itemIdx = sourceList.findIndex(i => i.instanceId === state.selectedInstanceId);
+    if (itemIdx === -1) return false;
+
+    const item = sourceList[itemIdx];
+    const ignoreId = sourceList === targetList ? item.instanceId : null;
+    if (!canPlaceItem(targetList, item, x, y, ignoreId, maxC, maxR)) return false;
+
+    sourceList.splice(itemIdx, 1);
+    item.x = x;
+    item.y = y;
+    targetList.push(item);
+    AudioFX.play('click');
+
+    // 保管庫が関わる移動は即保存（取り出し時の増殖・預け入れの消失を防止）
+    if (sourceList === state.stash || targetList === state.stash) saveStash();
+
+    renderInventoryGrid();
+    if (state.eventStatus === 'SHELTER') renderShelterPanels();
+    updateHUD();
+    return true;
+}
+
+// ドラッグ＆ドロップ
+function handleDropOnGrid(e, container, cellSize, locationType) {
+    e.preventDefault();
+    let data;
+    try { data = JSON.parse(e.dataTransfer.getData('text/plain')); } catch (err) { return; }
+    if (!data || !data.instanceId) return;
+
+    const gap = 4;
+    const rect = container.getBoundingClientRect();
+    const cellX = Math.floor((e.clientX - rect.left - 6) / (cellSize + gap));
+    const cellY = Math.floor((e.clientY - rect.top - 6) / (cellSize + gap));
+    const x = cellX - (data.grabX || 0);
+    const y = cellY - (data.grabY || 0);
+
+    state.selectedInstanceId = data.instanceId;
+    if (!tryMoveSelectedItem(x, y, locationType)) {
+        addLog('そこには置けません！', 'danger');
+        selectItem(data.instanceId);
+    } else {
+        selectItem(data.instanceId);
+    }
+}
+
+function handleCellClick(x, y, locationType = 'inventory') {
+    if (tryMoveSelectedItem(x, y, locationType)) return;
+    // 移動しない/選択がない場合はセル上のアイテムを選択
+    let list = locationType === 'inventory' ? state.inventory : state.stash;
+    const clickedItem = list.find(i => x >= i.x && x < i.x + i.w && y >= i.y && y < i.y + i.h);
+    if (clickedItem) {
+        selectItem(clickedItem.instanceId);
+    } else {
+        selectItem(null);
+    }
+}
+
+// アイテム選択
+function selectItem(instanceId, rerender = true) {
+    state.selectedInstanceId = instanceId;
+    const item = state.inventory.find(i => i.instanceId === instanceId) || state.stash.find(i => i.instanceId === instanceId);
+    
+    const titleEl = document.getElementById('item-detail-title');
+    const sizeEl = document.getElementById('item-detail-size');
+    const descEl = document.getElementById('item-detail-desc');
+    
+    const btnRotate = document.getElementById('btn-item-rotate');
+    const btnUse = document.getElementById('btn-item-use');
+    const btnDrop = document.getElementById('btn-item-drop');
+
+    if (item) {
+        titleEl.textContent = `${item.icon} ${item.name}`;
+        sizeEl.textContent = `サイズ: ${item.w}×${item.h}`;
+        descEl.textContent = item.desc;
+
+        btnRotate.disabled = false;
+        btnUse.disabled = !(item.type === 'heal' || item.type === 'food');
+        btnDrop.disabled = false;
+    } else {
+        titleEl.textContent = 'アイテムを選択してください';
+        sizeEl.textContent = '';
+        descEl.textContent = 'マス目のアイテムをクリックまたはドラッグして選択します。';
+        btnRotate.disabled = true;
+        btnUse.disabled = true;
+        btnDrop.disabled = true;
+    }
+
+    if (!rerender) return;
+    renderInventoryGrid();
+    if (state.eventStatus === 'SHELTER') renderShelterPanels();
+}
+
+// 選択中のアイテム回転
+function rotateSelectedItem() {
+    if (!state.selectedInstanceId) return;
+    const item = state.inventory.find(i => i.instanceId === state.selectedInstanceId);
+    if (!item) return;
+
+    const rotated = { ...item, w: item.h, h: item.w };
+    if (canPlaceItem(state.inventory, rotated, item.x, item.y, item.instanceId)) {
+        item.w = rotated.w;
+        item.h = rotated.h;
+        AudioFX.play('click');
+        renderInventoryGrid();
+        selectItem(item.instanceId);
+    } else {
+        addLog('回転するスペースがありません！', 'danger');
+    }
+}
+
+// 選択中アイテム使用
+function useSelectedItem() {
+    if (!state.selectedInstanceId) return;
+    if (state.eventStatus === 'GAMEOVER' || state.eventStatus === 'CLEAR') return;
+    const idx = state.inventory.findIndex(i => i.instanceId === state.selectedInstanceId);
+    if (idx === -1) return;
+
+    const item = state.inventory[idx];
+    if (item.id === 'bandage') {
+        state.hp = Math.min(state.maxHp, state.hp + 40);
+        addLog('包帯を使用。HPが40回復した。', 'success');
+        AudioFX.play('heal');
+    } else if (item.id === 'medkit') {
+        state.hp = Math.min(state.maxHp, state.hp + 80);
+        addLog('救急箱を使用。HPが80回復した！', 'success');
+        AudioFX.play('heal');
+    } else if (item.id === 'antibiotics') {
+        state.infection = Math.max(0, state.infection - 35);
+        addLog('抗生剤を服用。汚染度が35%低下した。', 'success');
+        AudioFX.play('heal');
+    } else if (item.id === 'canned_food') {
+        state.hunger = Math.min(state.maxHunger, state.hunger + 20);
+        addLog('缶詰を食べた。空腹度が20回復。', 'success');
+        AudioFX.play('heal');
+    } else if (item.id === 'dog_food') {
+        state.hunger = Math.min(state.maxHunger, state.hunger + 25);
+        state.infection = Math.min(100, state.infection + 5);
+        addLog('ドッグフードを食べた。空腹+25、汚染度+5%。', 'warning');
+        AudioFX.play('heal');
+    } else if (item.id === 'raw_meat') {
+        state.hunger = Math.min(state.maxHunger, state.hunger + 100);
+        state.hp -= 10;
+        addLog('生肉を食らった！空腹全快するも食中毒でHP-10ダメージ。', 'danger');
+        AudioFX.play('hit');
+    }
+
+    state.inventory.splice(idx, 1);
+    state.selectedInstanceId = null;
+    selectItem(null);
+    updateHUD();
+    checkGameOver(); // 生肉・ドッグフードで死亡条件に達した場合の判定
+}
+
+// 選択中アイテム破棄
+function dropSelectedItem() {
+    if (!state.selectedInstanceId) return;
+    const idx = state.inventory.findIndex(i => i.instanceId === state.selectedInstanceId);
+    if (idx === -1) return;
+
+    const item = state.inventory[idx];
+    state.inventory.splice(idx, 1);
+    addLog(`「${item.name}」を捨てた。`, 'warning');
+    AudioFX.play('click');
+    state.selectedInstanceId = null;
+    selectItem(null);
+    renderInventoryGrid();
+    updateHUD();
+}
+
+// ログ追加
+function addLog(msg, type = 'normal') {
+    const logBox = document.getElementById('game-log');
+    const p = document.createElement('p');
+    p.className = `p-1.5 rounded text-xs border ${
+        type === 'danger' ? 'bg-red-950/60 border-red-800 text-red-200' :
+        type === 'success' ? 'bg-emerald-950/60 border-emerald-800 text-emerald-200' :
+        type === 'warning' ? 'bg-amber-950/60 border-amber-800 text-amber-200' :
+        'bg-slate-800/60 border-slate-700 text-slate-300'
+    }`;
+    p.textContent = msg;
+    logBox.appendChild(p);
+    logBox.scrollTop = logBox.scrollHeight;
+}
+
+// ==========================================
+// 5. 2D Canvas アニメーション描画システム
+// ==========================================
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let animFrameId = null;
+let animTick = 0;
+let bgScroll = 0; // 背景スクロール量（歩いている間だけ進む）
+
+// 警察官の歩行スプライト (32×32ドット絵 2コマ)
+const POLICE_WALK_FRAMES = [
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAByElEQVR42u1WMUvDQBh9kTiIUBBEDCrEFqJOjVAQoa6CuFkXiTiq/6BddNZ/EKirW3Gtu0KXiO1WA4aASkScBBGXxkGvbdJeuEtyuvhNIbnLe/e97333AX8cEu8GVdP9Ye9duynFISDzAq9ubNOW+HGISKzgEcCBaNRrXCRG0tDRNByYhgOhErAAmIaDfF1AERL9394/mH+cGR9jkkLiKcKliZ4BquXSwJpi5YLbFYlroB+UAPMUIXcGquUS2i0Hi/kslZBwF9DAhbrAtZsSNN2nnZ5IIaQRhaU429EDmeBNe2wJiB2PbmTM758CAD5XDn5Hgv527N67XfD1zT3xtyEBNw0Hh+fZAImXxwdMzc7Bs61YMnBJQMDTDDnJZjWn4vK4A6CD/K4gAuGrmKRezandZ2E1EAZv1GsIkyFEPNuK1QfkuODhuD7Z+ukJ8FO5C1RN93s//e5yilbA3e0V9fpNNQMk2q3gILKwvDZ0XVwbylG9v1jpDZq0aRgAXp+fxNgw6kSebUHRConAmRuRqum+ohUG0u3ZFianZwAAoxkFUVkSOhULzQDt9ESipFlgasX91iN2o30npFkdIbOO2FEAw0j9B2t8AeXG3V2ANqlCAAAAAElFTkSuQmCC',
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABx0lEQVR42u1WPUvDUBQ9CVlEEFyEgkJsIerUCgUpKG5icbN1kIij+g/qooOT4h8IVNzcimvdFbpUbLcaMAQ/iIhTQUSE1unWxDblvZc+Xbxb8j7OfefcL+CPTeE9oBupdq//rl1TRBzQeIEz2XzYlraIIworeB/ggFXKJS4n1EHoaJkOLNOBVAlYACzTQbIsIQhJ/+bbO/PFI8NDTFIoPEE4M/qdAMVCrmvP/O45d1ZEjgE/KAHzBCE3A8VCDo26g+lkPNQh6VkQBi41C1y7psBItcNeT1JIKUQ/pThZTwWY4KVdWAJKx71rDZNbRwCAj7nt35HAX47dO7cDvrSyKb8bErhlOtg5iweceHl8wNj4BDy7KiQDlwQEPkjTohzWEzou9lsAWkhuiN3BxQDRTuD+b1FTWfS/OlxFpVzqub58oEaSRmUBJ/PsahcLxEwmmw8d1yJlgf9SasdTswsdcL80ekLnnoi4mlHMSAfY8I9px4stoaoonAUxI92JC5KpUXfkp+Hr8xMA4LPpgRhZO72XW4iIfj+4a9cUz64GGBEJQhV/bKro66n3R2WBKQZuby4D026/dXKaNR401hG7H0Avp/6N1b4ArO/g5Wx8vFQAAAAASUVORK5CYII='
+].map(src => { const img = new Image(); img.src = src; return img; });
+const SPRITE_SCALE = 2;        // 32px → 64px で描画
+const WALK_FRAME_TICKS = 36;   // 何フレームごとにコマを切り替えるか (大きいほどゆっくり)
+const WALK_BOB_HEIGHT = 3;     // 歩行時の縦揺れの高さ (px)
+const WALK_SCROLL_SPEED = 0.33; // 歩行中の背景スクロール速度 (px/フレーム)
+const IDLE_BOB_SPEED = 0.05;   // 立ち止まり時の呼吸の速さ
+const IDLE_BOB_HEIGHT = 2;     // 立ち止まり時の呼吸の揺れ (px)
+
+// 探索中だけ歩く（戦闘・拠点・ゲームオーバー等では立ち止まる）
+function isPlayerWalking() {
+    return !!state.selectedClass && state.eventStatus === 'EXPLORE';
+}
+
+function initCanvas() {
+    canvas.width = 480;
+    canvas.height = 320;
+}
+
+function renderCanvas() {
+    animTick++;
+    if (isPlayerWalking()) bgScroll += WALK_SCROLL_SPEED;
+    ctx.fillStyle = '#090514';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const stageIdx = Math.min(Math.floor((state.phase - 1) / 10), 9);
+
+    // 1. 背景描画 (ステージ別のドット絵風景)
+    drawStageBackground(stageIdx);
+
+    // 2. プレイヤー描画
+    if (state.selectedClass && state.selectedClass.id === 'police') {
+        drawPoliceSprite(80, 240, animTick);
+    } else {
+        drawPixelPlayer(80, 200, animTick);
+    }
+
+    // 3. 状態に応じたモンスター・エフェクト描画
+    if (state.eventStatus === 'ENCOUNTER') {
+        drawPixelZombie(320, 248, animTick); // 足元が地面(y=240)に来る位置
+    } else if (state.eventStatus === 'SHELTER') {
+        drawShelterNpc(340, 200);
+    }
+
+    // 雨・環境パーティクル
+    drawWeatherParticles(stageIdx, animTick);
+
+    animFrameId = requestAnimationFrame(renderCanvas);
+}
+
+function drawStageBackground(stageIdx) {
+    // 地面
+    ctx.fillStyle = stageIdx === 0 ? '#2d1b0e' : stageIdx === 4 ? '#1e293b' : '#140c1d';
+    ctx.fillRect(0, 240, canvas.width, 80);
+    ctx.fillStyle = '#3b2d54';
+    ctx.fillRect(0, 238, canvas.width, 3);
+
+    // 遠景シルエット
+    ctx.fillStyle = '#1c1329';
+    for (let i = 0; i < 6; i++) {
+        const h = 60 + (i % 3) * 30;
+        ctx.fillRect(i * 90 - (Math.floor(bgScroll) % 90), 240 - h, 70, h);
+    }
+
+    // 街灯・ライト
+    const lightGlow = ctx.createRadialGradient(240, 100, 10, 240, 100, 180);
+    lightGlow.addColorStop(0, 'rgba(251, 191, 36, 0.15)');
+    lightGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = lightGlow;
+    ctx.beginPath(); ctx.arc(240, 100, 180, 0, Math.PI * 2); ctx.fill();
+}
+
+// 警察官スプライト描画 (x: 体の左端あたり, groundY: 足元の地面の高さ)
+function drawPoliceSprite(x, groundY, tick) {
+    // 歩行中は2コマを交互に、立ち止まり中は1コマ目で固定
+    const walking = isPlayerWalking();
+    const frameIdx = walking ? Math.floor(tick / WALK_FRAME_TICKS) % 2 : 0;
+    const img = POLICE_WALK_FRAMES[frameIdx];
+    if (!img.complete) return;
+    const size = 32 * SPRITE_SCALE;
+
+    // 縦揺れ：歩行中は一歩ごとに体が浮き沈みし（コマ切替の瞬間に着地）、
+    // 立ち止まり中は以前のキャラと同じゆったりした呼吸の揺れ
+    let bob;
+    if (walking) {
+        bob = -Math.abs(Math.sin((tick / WALK_FRAME_TICKS) * Math.PI)) * WALK_BOB_HEIGHT;
+    } else {
+        bob = Math.sin(tick * IDLE_BOB_SPEED) * IDLE_BOB_HEIGHT;
+    }
+    bob = Math.round(bob); // ドット絵がにじまないよう整数ピクセルに
+
+    // スプライトの足元は32px中の30行目、体の左端は6列目付近
+    const drawX = x - 6 * SPRITE_SCALE;
+    const drawY = groundY - 30 * SPRITE_SCALE + bob;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, drawX, drawY, size, size);
+}
+
+function drawPixelPlayer(x, y, tick) {
+    const bob = Math.sin(tick * 0.1) * 2;
+    // 体
+    ctx.fillStyle = '#3b82f6';
+    ctx.fillRect(x, y - 30 + bob, 18, 22);
+    // 頭
+    ctx.fillStyle = '#fde047';
+    ctx.fillRect(x + 2, y - 44 + bob, 14, 14);
+    // 目
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x + 12, y - 40 + bob, 2, 4);
+    // カバン
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(x - 8, y - 28 + bob, 10, 16);
+}
+
+function drawPixelZombie(x, y, tick) {
+    const bob = Math.cos(tick * 0.12) * 3;
+    const advance = Math.sin(tick * 0.05) * 10;
+    const zX = x - advance;
+
+    // ゾンビ体
+    ctx.fillStyle = '#15803d';
+    ctx.fillRect(zX, y - 32 + bob, 20, 24);
+    // 頭
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(zX + 2, y - 46 + bob, 16, 16);
+    // 目 (赤く光る)
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(zX + 4, y - 42 + bob, 3, 3);
+    ctx.fillRect(zX + 10, y - 42 + bob, 3, 3);
+    // 手
+    ctx.fillStyle = '#15803d';
+    ctx.fillRect(zX - 10, y - 24 + bob, 12, 5);
+}
+
+function drawShelterNpc(x, y) {
+    ctx.fillStyle = '#06b6d4';
+    ctx.fillRect(x, y - 30, 18, 22);
+    ctx.fillStyle = '#f87171';
+    ctx.fillRect(x + 2, y - 44, 14, 14);
+}
+
+function drawWeatherParticles(stageIdx, tick) {
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 20; i++) {
+        const px = (i * 25 + tick * 8) % canvas.width;
+        const py = (i * 18 + tick * 12) % canvas.height;
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px - 4, py + 8);
+        ctx.stroke();
+    }
+}
+
+// ==========================================
+// 6. ゲームコアロジック＆フェーズ進行
+// ==========================================
+
+function initClassSelectionUI() {
+    const container = document.getElementById('class-cards-container');
+    container.innerHTML = '';
+
+    Object.values(CLASSES).forEach(c => {
+        const card = document.createElement('div');
+        card.className = `pixel-card p-4 rounded cursor-pointer transition-all flex flex-col justify-between ${c.bg} hover:border-purple-400`;
+        card.onclick = () => {
+            document.querySelectorAll('#class-cards-container > div').forEach(el => el.classList.remove('ring-4', 'ring-purple-400'));
+            card.classList.add('ring-4', 'ring-purple-400');
+            state.selectedClass = c;
+            document.getElementById('btn-start-game').disabled = false;
+            AudioFX.play('click');
+        };
+
+        card.innerHTML = `
+            <div>
+                <h3 class="text-xl font-bold text-purple-300 mb-1">${c.name}</h3>
+                <p class="text-xs text-slate-300 mb-3 leading-relaxed">${c.desc}</p>
+            </div>
+            <div class="text-[10px] bg-black/60 p-2 rounded text-slate-400">
+                初期カバン: ${c.cols}×${c.rows} (${c.cols*c.rows}マス)
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function startGame() {
+    if (!state.selectedClass) return;
+    
+    // モーダル非表示
+    document.getElementById('class-select-modal').classList.add('hidden');
+
+    // 初期化
+    const cls = state.selectedClass;
+    state.cols = cls.cols;
+    state.rows = cls.rows;
+    state.inventory = [];
+    state.phase = 1;
+    state.hp = 100;
+    state.infection = 0;
+    state.hunger = 100;
+    state.eventStatus = 'EXPLORE';
+    state.gold = 0;
+    state.shopStock = [];
+    state.backpackBought = false;
+
+    // 初期アイテム付与
+    cls.items.forEach(itemId => autoAddItemToInventory(itemId));
+
+    // ストレージからスタッシュ復元
+    try {
+        const savedStash = localStorage.getItem('zombie_survival_stash');
+        if (savedStash) state.stash = JSON.parse(savedStash) || [];
+    } catch(e){ state.stash = []; }
+
+    addLog(`【ゲーム開始】 職業: ${cls.name} で出撃した。100フェーズの生還を目指せ！`, 'success');
+    updateHUD();
+    renderInventoryGrid();
+    renderActionButtons();
+}
+
+// ターン進行 (メインルーティン)
+function nextPhaseTurn() {
+    if (state.eventStatus !== 'EXPLORE') return;
+    // 念のため：死亡条件に達していたらボタンが固まらないよう判定してから抜ける
+    if (state.hp <= 0 || state.infection >= 100 || state.hunger <= 0) {
+        checkGameOver();
+        return;
+    }
+
+    // 空腹度消費
+    state.hunger -= 5;
+    if (state.hunger <= 0) {
+        state.hunger = 0;
+        addLog('【餓死】 空腹度が0になった…！', 'danger');
+        checkGameOver();
+        return;
+    }
+
+    // 病院エリア特性：毎ターン汚染上昇
+    const stageIdx = Math.min(Math.floor((state.phase - 1) / 10), 9);
+    const stage = STAGES[stageIdx];
+    if (stage.infectPerTurn) {
+        const hasGasMask = state.inventory.some(i => i.id === 'gas_mask');
+        if (!hasGasMask) {
+            state.infection = Math.min(100, state.infection + stage.infectPerTurn);
+            addLog(`【有毒環境】 汚染度が+${stage.infectPerTurn}%上昇。`, 'warning');
+        } else {
+            addLog('【ガスマスク】 空気の汚染を防御！', 'success');
+        }
+    }
+
+    updateCalculatedStats();
+    
+    // 事象の確率抽選 (1.アイテム, 2.遭遇, 3.ハプニング, 4.イベント, 5.何も起こらない)
+    const roll = Math.random();
+    
+    if (roll < state.currentEncounter) {
+        // 遭遇
+        triggerEncounter();
+    } else if (roll < state.currentEncounter + stage.item) {
+        // アイテム発見
+        rollFoundItem();
+    } else if (roll < state.currentEncounter + stage.item + stage.happening) {
+        // ハプニング
+        // ハプニング枠のうち35%は金庫、残りは固く閉ざされた部屋
+        if (Math.random() < SAFE_EVENT_RATE) triggerSafe(); else triggerHappening();
+    } else if (roll < state.currentEncounter + stage.item + stage.happening + stage.event) {
+        // イベント
+        triggerAreaEvent();
+    } else {
+        // 何も起こらない
+        state.eventStatus = 'EXPLORE';
+        addLog(`【フェーズ ${state.phase}】 静寂が包む。何も起こらなかった。`);
+        advancePhaseCount();
+    }
+
+    updateHUD();
+    renderActionButtons();
+    checkGameOver();
+}
+
+function advancePhaseCount() {
+    state.phase++;
+
+    // 100フェーズ突破はクリア（拠点には入らない。判定は checkGameOver で行う）
+    if (state.phase > 100) return;
+
+    // 10フェーズごとの拠点チェック
+    if ((state.phase - 1) % 10 === 0 && state.phase > 1) {
+        enterShelter();
+    } else {
+        state.eventStatus = 'EXPLORE';
+    }
+}
+
+function triggerEncounter() {
+    state.eventStatus = 'ENCOUNTER';
+    const specialChance = (state.phase / 100) * 0.60;
+    
+    if (Math.random() < specialChance) {
+        const specials = ['runner', 'spreader', 'brute', 'horde', 'mutant'];
+        const type = specials[Math.floor(Math.random() * specials.length)];
+        state.currentEnemy = { ...ZOMBIES[type], type };
+    } else {
+        state.currentEnemy = { ...ZOMBIES['normal'], type: 'normal' };
+    }
+    state.currentEnemy.maxHp = state.currentEnemy.hp;
+    
+    const e = state.currentEnemy;
+    const hint = e.immuneTo ? '(銃が効かない！ロケットランチャー以外では倒せない)' : e.hp > 1 ? `(頑丈：ハンドガン${e.hp}発 / ショットガン1発)` : '';
+    addLog(`【フェーズ ${state.phase}】 ${e.icon} ${e.name}と遭遇！ ${hint}`, 'danger');
+    AudioFX.play('alarm');
+}
+
+// 戦闘処理
+function getAmmoCount() {
+    return state.inventory.filter(i => i.id === 'ammo').reduce((sum, i) => sum + (i.count || 0), 0);
+}
+
+function consumeAmmo() {
+    const ammoItem = state.inventory.find(i => i.id === 'ammo' && i.count > 0);
+    if (!ammoItem) return false;
+    ammoItem.count--;
+    if (ammoItem.count <= 0) state.inventory = state.inventory.filter(i => i !== ammoItem);
+    return true;
+}
+
+// 敵からの反撃
+function enemyCounterAttack(enemy) {
+    state.hp -= enemy.dmg;
+    if (enemy.infPenalty > 0) state.infection += enemy.infPenalty;
+    AudioFX.play('hit');
+}
+
+// weaponId: 'handgun' / 'shotgun' / 'rocket_launcher' / 'fist'(武器・弾なし)
+function executeFight(weaponId) {
+    if (state.eventStatus !== 'ENCOUNTER') return;
+    const enemy = state.currentEnemy;
+    if (enemy.immuneTo && enemy.immuneTo.includes(weaponId)) return;
+
+    if (weaponId === 'fist') {
+        // 武器や弾がない時：素手では倒せず、ダメージを受けて再戦闘（フェーズは進まない）
+        enemyCounterAttack(enemy);
+        addLog(`使える武器がない！素手では歯が立たず、${enemy.name}の攻撃で ${enemy.dmg} ダメージ！ ${enemy.icon} まだ目の前にいる…！`, 'danger');
+        finishFightTurn();
+        return;
+    }
+
+    const weapon = WEAPONS[weaponId];
+    if (!weapon || !state.inventory.some(i => i.id === weaponId)) return;
+    if (weapon.usesAmmo && !consumeAmmo()) return;
+    if (weapon.singleUse) {
+        const idx = state.inventory.findIndex(i => i.id === weaponId);
+        state.inventory.splice(idx, 1);
+        if (state.selectedInstanceId && !state.inventory.some(i => i.instanceId === state.selectedInstanceId)) selectItem(null);
+    }
+    AudioFX.play(weapon.sfx);
+
+    enemy.hp -= weapon.power;
+    if (enemy.hp <= 0) {
+        const used = weapon.singleUse ? `(${weapon.name}は使い切った)` : '';
+        state.gold += KILL_REWARD;
+        addLog(`${weapon.icon} ${weapon.name}で撃破！${enemy.icon} ${enemy.name}を倒した！ 💰+${KILL_REWARD}G ${used}`, 'success');
+        // スプレッダーは倒すとガスを撒き散らす（ガスマスクで防げる）
+        if (enemy.deathGas) {
+            if (state.inventory.some(i => i.id === 'gas_mask')) {
+                addLog('☣️ 死骸から有毒ガスが噴き出した！…が、ガスマスクで防いだ！', 'success');
+            } else {
+                state.infection += enemy.deathGas;
+                addLog(`☣️ 死骸から有毒ガスが噴き出した！汚染度が${enemy.deathGas}%上昇！`, 'danger');
+            }
+        }
+        advancePhaseCount();
+    } else {
+        // 倒しきれなければ反撃を受け、戦闘続行（フェーズは進まない）
+        enemyCounterAttack(enemy);
+        addLog(`${weapon.icon} 命中！だが${enemy.name}はまだ倒れない (残りハンドガン${enemy.hp}発分)。反撃を受け ${enemy.dmg} ダメージ！`, 'danger');
+    }
+    finishFightTurn();
+}
+
+function finishFightTurn() {
+    updateHUD();
+    renderInventoryGrid();
+    renderActionButtons();
+    checkGameOver();
+}
+
+// 逃走処理
+function executeFlee() {
+    const enemy = state.currentEnemy || ZOMBIES['normal'];
+    let fleeChance = state.currentEvasion - enemy.evaPenalty;
+    fleeChance = Math.max(0.1, fleeChance); // 最低10%の逃走率は保証
+    
+    state.hunger -= 5; // 逃走による追加疲労
+    const roll = Math.random();
+
+    if (roll < fleeChance) {
+        addLog(`${enemy.name}から無事に逃走に成功した！`, 'success');
+        advancePhaseCount();
+    } else {
+        // 逃げ切れなければフェーズは進まず、ダメージを受けて再戦闘
+        state.hp -= enemy.dmg;
+        if (enemy.infPenalty > 0) state.infection += enemy.infPenalty;
+        addLog(`逃走失敗！背後から攻撃され ${enemy.dmg} ダメージ！ ${enemy.icon} ${enemy.name}が再び迫ってくる…！`, 'danger');
+        AudioFX.play('hit');
+        state.eventStatus = 'ENCOUNTER';
+    }
+
+    updateHUD();
+    renderActionButtons();
+    checkGameOver();
+}
+
+// 発煙筒確定逃走
+function executeFlareFlee() {
+    const flareIdx = state.inventory.findIndex(i => i.id === 'flare');
+    if (flareIdx !== -1) {
+        state.inventory.splice(flareIdx, 1);
+        addLog('発煙筒を投擲！煙に紛れて100%安全に逃走した！', 'success');
+        AudioFX.play('item');
+        advancePhaseCount();
+        updateHUD();
+        renderInventoryGrid();
+        renderActionButtons();
+        checkGameOver();
+    }
+}
+
+// アイテム発見処理
+// ランダムなアイテムIDを抽選（foodRate があるステージでは、その確率で食料を優先）
+const FOOD_IDS = ['canned_food', 'dog_food', 'raw_meat'];
+function pickRandomItemId(stage) {
+    if (stage && stage.foodRate && Math.random() < stage.foodRate) {
+        return FOOD_IDS[Math.floor(Math.random() * FOOD_IDS.length)];
+    }
+    // weight があるアイテムはその比率で出現（未指定は1）
+    const keys = Object.keys(ITEM_DB);
+    const total = keys.reduce((sum, k) => sum + (ITEM_DB[k].weight ?? 1), 0);
+    let r = Math.random() * total;
+    for (const k of keys) {
+        r -= (ITEM_DB[k].weight ?? 1);
+        if (r < 0) return k;
+    }
+    return keys[keys.length - 1];
+}
+
+function rollFoundItem() {
+    const stageIdx = Math.min(Math.floor((state.phase - 1) / 10), 9);
+    let dropCount = 1;
+    if (stageIdx === 2) dropCount = 2; // 学校
+    else if (stageIdx === 5) dropCount = Math.floor(Math.random() * 2) + 2; // モール (2〜3個)
+
+    state.foundItems = [];
+    let names = [];
+
+    for (let i = 0; i < dropCount; i++) {
+        const itemData = { ...ITEM_DB[pickRandomItemId(STAGES[stageIdx])] };
+        state.foundItems.push(itemData);
+        names.push(itemData.name);
+    }
+
+    state.eventStatus = 'ITEM_FOUND';
+    addLog(`【フェーズ ${state.phase}】 物資を発見した！ (${names.join(', ')})`, 'warning');
+    AudioFX.play('item');
+}
+
+function acceptFoundItem(index) {
+    if (!state.foundItems || state.foundItems.length <= index) return;
+    const item = state.foundItems[index];
+
+    const success = autoAddItemToInventory(item.id);
+    if (success) {
+        addLog(`「${item.name}」をカバンに収納した。`, 'success');
+        AudioFX.play('item');
+        state.foundItems.splice(index, 1);
+        
+        if (state.foundItems.length === 0) {
+            advancePhaseCount();
+        }
+    } else {
+        // alert() は画面が止まるのでログで通知
+        addLog(`カバンに「${item.name}」(${item.w}×${item.h})を入れる空きがない！アイテムを整理・破棄・回転してから拾おう。`, 'danger');
+        AudioFX.play('hit');
+    }
+
+    updateHUD();
+    renderInventoryGrid();
+    renderActionButtons();
+    checkGameOver();
+}
+
+function rejectRemainingItems() {
+    addLog(`残りのアイテムを諦めて進んだ。`);
+    state.foundItems = [];
+    advancePhaseCount();
+    updateHUD();
+    renderActionButtons();
+    checkGameOver();
+}
+
+// ハプニング処理
+function triggerHappening() {
+    state.eventStatus = 'HAPPENING';
+    const hasCamera = state.inventory.some(i => i.id === 'camera');
+
+    // 先に中身（罠かどうか）を決めてから、偵察で正しい情報を表示する
+    state.happeningData = { isTrap: Math.random() < 0.4, scouted: false };
+
+    let previewMsg = '';
+    if (hasCamera) {
+        // 小型カメラは何度でも使える自動偵察
+        previewMsg = ' ' + scoutResultText('小型カメラ');
+        state.happeningData.scouted = true;
+    }
+    addLog(`【フェーズ ${state.phase}】 固く閉ざされた部屋を発見。${previewMsg}`, 'warning');
+}
+
+function scoutResultText(tool) {
+    return state.happeningData.isTrap
+        ? `【${tool}で偵察】危険！扉の向こうに罠が仕掛けられている！`
+        : `【${tool}で偵察】扉の向こうは安全だ。物資がありそうだ。`;
+}
+
+// 聴診器で部屋を偵察（1回使うと壊れる）
+function scoutWithStethoscope() {
+    if (state.eventStatus !== 'HAPPENING' || state.happeningData.scouted) return;
+    const idx = state.inventory.findIndex(i => i.id === 'stethoscope');
+    if (idx === -1) return;
+    state.inventory.splice(idx, 1);
+    state.happeningData.scouted = true;
+    addLog(`${scoutResultText('聴診器')} (聴診器は壊れてしまった)`, state.happeningData.isTrap ? 'danger' : 'success');
+    AudioFX.play('item');
+    if (state.selectedInstanceId && !state.inventory.some(i => i.instanceId === state.selectedInstanceId)) selectItem(null);
+    updateHUD();
+    renderInventoryGrid();
+    renderActionButtons();
+}
+
+function resolveHappening(open) {
+    if (open) {
+        if (state.happeningData.isTrap) {
+            state.hp -= 20;
+            addLog('ドアを開けた瞬間トラップが作動！ 20 ダメージ！', 'danger');
+            AudioFX.play('hit');
+        } else {
+            // 金庫の中身：救急箱・缶詰・ハンドガン・弾薬からランダム。拾うかどうかはプレイヤーが選ぶ
+            const SAFE_LOOT = ['medkit', 'canned_food', 'handgun', 'ammo'];
+            const lootId = SAFE_LOOT[Math.floor(Math.random() * SAFE_LOOT.length)];
+            const loot = { ...ITEM_DB[lootId] };
+            state.foundItems = [loot];
+            state.eventStatus = 'ITEM_FOUND';
+            addLog(`金庫を開けた！中には「${loot.icon} ${loot.name}」(${loot.w}×${loot.h})が入っている。拾う？`, 'success');
+            AudioFX.play('item');
+            updateHUD();
+            renderActionButtons();
+            return; // 拾う/拾わないを選んだ時点でフェーズが進む
+        }
+    } else {
+        addLog('リスクを避け、部屋を素通りした。');
+    }
+    advancePhaseCount();
+    updateHUD();
+    renderActionButtons();
+    checkGameOver();
+}
+
+// 金庫イベント
+const SAFE_EVENT_RATE = 0.35;  // ハプニング発生時に金庫になる確率
+function triggerSafe() {
+    state.eventStatus = 'SAFE';
+    const hasCrowbar = state.inventory.some(i => i.id === 'crowbar');
+    addLog(`【フェーズ ${state.phase}】 🗄️ 重い金庫を発見！ ${hasCrowbar ? 'バールでこじ開けられそうだ。' : '鍵がかかっている。バールがあれば開けられるのだが…'}`, 'warning');
+    AudioFX.play('item');
+}
+
+function resolveSafe(open) {
+    if (state.eventStatus !== 'SAFE') return;
+    const idx = open ? state.inventory.findIndex(i => i.id === 'crowbar') : -1;
+    if (open && idx !== -1) {
+        // バールは1回で壊れる
+        state.inventory.splice(idx, 1);
+        if (state.selectedInstanceId && !state.inventory.some(i => i.instanceId === state.selectedInstanceId)) selectItem(null);
+
+        // 4〜5個のランダムなアイテム。拾うかどうかは1つずつ選べる
+        const count = 4 + Math.floor(Math.random() * 2);
+        const stageIdx = Math.min(Math.floor((state.phase - 1) / 10), 9);
+        state.foundItems = [];
+        for (let i = 0; i < count; i++) {
+            state.foundItems.push({ ...ITEM_DB[pickRandomItemId(STAGES[stageIdx])] });
+        }
+        state.eventStatus = 'ITEM_FOUND';
+        addLog(`バールで金庫をこじ開けた！(バールは折れてしまった) 中から${count}個の物資が出てきた: ${state.foundItems.map(i => i.name).join(', ')}`, 'success');
+        AudioFX.play('item');
+        updateHUD();
+        renderInventoryGrid();
+        renderActionButtons();
+        return; // 拾い終わる/諦めた時点でフェーズが進む
+    }
+    addLog('金庫を諦めて先へ進んだ。');
+    advancePhaseCount();
+    updateHUD();
+    renderActionButtons();
+    checkGameOver();
+}
+
+// エリアイベント
+function triggerAreaEvent() {
+    state.eventStatus = 'EVENT';
+    const events = [
+        '【カーアラーム】 放置された車のアラームが鳴り響く！遭遇率上昇！',
+        '【ぬかるみ】 悪天候で足場が劣悪化。逃走が困難に。',
+        '【停電】 視界が奪われ緊張が走る。'
+    ];
+    const ev = events[Math.floor(Math.random() * events.length)];
+    addLog(`【フェーズ ${state.phase} イベント】 ${ev}`, 'warning');
+    AudioFX.play('alarm');
+    advancePhaseCount();
+    updateHUD();
+    renderActionButtons();
+}
+
+// 拠点 (セーフルーム) 到着
+function enterShelter() {
+    state.eventStatus = 'SHELTER';
+    // ステータス回復 (HP+20のみ、空腹度・汚染度は回復しない)
+    state.hp = Math.min(state.maxHp, state.hp + 30);
+    state.hunger = Math.min(state.maxHunger, state.hunger + 30);
+    addLog(`【拠点到着】 セーフルームに無事到達！ HPが30、空腹度が30回復した。（汚染度は維持）`, 'success');
+    AudioFX.play('heal');
+
+    saveStash();
+
+    // ショップの品揃えを更新（訪れるたびに入れ替わる）
+    rollShopStock();
+    state.shelterView = 'stash';
+    document.getElementById('item-detail-panel').classList.add('hidden');
+    renderShelterPanels();
+}
+
+// ==========================================
+// 拠点パネル（保管庫 / ショップ）
+// ==========================================
+function showShelterView(view) {
+    state.shelterView = view;
+    AudioFX.play('click');
+    renderShelterPanels();
+    renderActionButtons();
+}
+
+function renderShelterPanels() {
+    const stashEl = document.getElementById('stash-panel');
+    const shopEl = document.getElementById('shop-panel');
+    const isShop = state.shelterView === 'shop';
+    stashEl.classList.toggle('hidden', isShop);
+    stashEl.classList.toggle('flex', !isShop);
+    shopEl.classList.toggle('hidden', !isShop);
+    shopEl.classList.toggle('flex', isShop);
+    if (isShop) renderShopPanel(); else renderStashGrid();
+}
+
+function rollShopStock() {
+    const pool = Object.keys(SELL_PRICES).filter(id => ITEM_DB[id]);
+    // 重複なしでランダムに3つ
+    for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    state.shopStock = pool.slice(0, SHOP_SLOTS).map(id => ({ id, sold: false }));
+}
+
+function renderShopPanel() {
+    document.getElementById('shop-gold').textContent = state.gold;
+    const list = document.getElementById('shop-list');
+    list.innerHTML = '';
+
+    const addRow = (icon, name, sub, price, disabledReason, onBuy, highlight) => {
+        const row = document.createElement('div');
+        row.className = `flex items-center gap-2 px-1.5 py-0.5 rounded border ${highlight ? 'border-yellow-500 bg-yellow-950/40' : 'border-slate-700 bg-slate-900'}`;
+        row.innerHTML = `
+            <span class="text-base leading-none">${icon}</span>
+            <div class="flex-1 min-w-0 truncate">
+                <span class="font-bold text-slate-100">${name}</span>
+                <span class="text-[10px] text-slate-400 ml-1">${sub}</span>
+            </div>
+            <span class="text-yellow-300 font-bold whitespace-nowrap">${price}G</span>`;
+        const btn = document.createElement('button');
+        btn.className = 'pixel-btn bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-0.5 rounded text-[11px] whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed';
+        btn.textContent = disabledReason || '購入';
+        btn.disabled = !!disabledReason;
+        btn.onclick = onBuy;
+        row.appendChild(btn);
+        list.appendChild(row);
+    };
+
+    // ショップ限定：拡張バックパック（常設・1ゲーム1回）
+    addRow('🎒', '拡張バックパック【限定】', `カバン+1列(${state.rows}マス) / 1ゲーム1回`, BACKPACK_PRICE,
+        state.backpackBought ? '購入済' : state.gold < BACKPACK_PRICE ? 'G不足' : null,
+        () => buyBackpack(), true);
+
+    // ランダム商品
+    state.shopStock.forEach((slot, idx) => {
+        const data = ITEM_DB[slot.id];
+        const price = getBuyPrice(slot.id);
+        const name = slot.id === 'ammo' ? `弾薬(${SHOP_AMMO_PACK}発)` : data.name;
+        addRow(data.icon, name, `サイズ ${data.w}×${data.h}`, price,
+            slot.sold ? '売切' : state.gold < price ? 'G不足' : null,
+            () => buyShopItem(idx));
+    });
+
+    // 売却欄：カバンで選んだアイテムを売る
+    const sell = document.getElementById('shop-sell');
+    const item = state.inventory.find(i => i.instanceId === state.selectedInstanceId);
+    sell.innerHTML = '';
+    if (!item) {
+        sell.innerHTML = '<span class="text-slate-400">💱 売却：カバンのアイテムをクリックして選ぶと売れます</span>';
+        return;
+    }
+    const price = getSellPrice(item);
+    const label = document.createElement('span');
+    label.className = 'text-slate-200';
+    const countText = item.id === 'ammo' ? ` ×${item.count}発` : '';
+    label.textContent = price === null
+        ? `💱 ${item.icon} ${item.name} はショップで買い取れません`
+        : `💱 ${item.icon} ${item.name}${countText} → ${price}G で売却`;
+    sell.appendChild(label);
+    if (price !== null) {
+        const btn = document.createElement('button');
+        btn.className = 'pixel-btn bg-yellow-700 hover:bg-yellow-600 text-white px-2 py-1 rounded text-[11px] ml-2';
+        btn.textContent = '売る';
+        btn.onclick = () => sellSelectedItem();
+        sell.appendChild(btn);
+    }
+}
+
+function buyShopItem(idx) {
+    const slot = state.shopStock[idx];
+    if (!slot || slot.sold) return;
+    const price = getBuyPrice(slot.id);
+    if (state.gold < price) return;
+    const ok = autoAddItemToInventory(slot.id, slot.id === 'ammo' ? SHOP_AMMO_PACK : null);
+    if (!ok) {
+        addLog(`カバンに「${ITEM_DB[slot.id].name}」を入れる空きがない！整理するか、保管庫に預けてから買おう。`, 'danger');
+        AudioFX.play('hit');
+        return;
+    }
+    state.gold -= price;
+    slot.sold = true;
+    addLog(`🛒 「${ITEM_DB[slot.id].name}」を ${price}G で購入した。`, 'success');
+    AudioFX.play('item');
+    afterShopChange();
+}
+
+function buyBackpack() {
+    if (state.backpackBought || state.gold < BACKPACK_PRICE) return;
+    state.gold -= BACKPACK_PRICE;
+    state.backpackBought = true;
+    state.cols += 1; // 横に1列(縦の高さ分)拡張
+    addLog(`🎒 拡張バックパックを購入！カバンが ${state.cols}×${state.rows}マスに広がった。`, 'success');
+    AudioFX.play('item');
+    afterShopChange();
+}
+
+function sellSelectedItem() {
+    const idx = state.inventory.findIndex(i => i.instanceId === state.selectedInstanceId);
+    if (idx === -1) return;
+    const item = state.inventory[idx];
+    const price = getSellPrice(item);
+    if (price === null) return;
+    state.inventory.splice(idx, 1);
+    state.gold += price;
+    state.selectedInstanceId = null;
+    addLog(`💱 「${item.name}」を ${price}G で売却した。`, 'success');
+    AudioFX.play('item');
+    afterShopChange();
+}
+
+function afterShopChange() {
+    updateHUD();
+    renderInventoryGrid();
+    renderShelterPanels();
+    renderActionButtons(); // ショップボタンの所持金表示を更新
+}
+
+// 保管庫をストレージへ保存
+function saveStash() {
+    try {
+        localStorage.setItem('zombie_survival_stash', JSON.stringify(state.stash));
+    } catch (e) {}
+}
+
+function leaveShelter() {
+    saveStash(); // 拠点で整理した最終状態を保存
+    state.selectedInstanceId = null;
+    selectItem(null, false);
+    closeStashPanel();
+    renderInventoryGrid();
+
+    state.eventStatus = 'EXPLORE';
+    addLog(`【再出撃】 装備を整え、次のステージへ足を踏み入れた…`, 'warning');
+    updateHUD();
+    renderActionButtons();
+}
+
+// ゲームオーバー判定
+function clampStats() {
+    state.hp = Math.max(0, Math.min(state.maxHp, state.hp));
+    state.infection = Math.max(0, Math.min(100, state.infection));
+    state.hunger = Math.max(0, Math.min(state.maxHunger, state.hunger));
+}
+
+function closeStashPanel() {
+    document.getElementById('stash-panel').classList.add('hidden');
+    document.getElementById('stash-panel').classList.remove('flex');
+    document.getElementById('shop-panel').classList.add('hidden');
+    document.getElementById('shop-panel').classList.remove('flex');
+    document.getElementById('item-detail-panel').classList.remove('hidden');
+}
+
+function checkGameOver() {
+    clampStats();
+    if (state.eventStatus === 'GAMEOVER' || state.eventStatus === 'CLEAR') return; // 二重判定防止
+    if (state.hp <= 0 || state.infection >= 100 || state.hunger <= 0) {
+        if (state.eventStatus === 'SHELTER') closeStashPanel();
+        state.eventStatus = 'GAMEOVER';
+        const reason = state.hp <= 0 ? 'ダメージにより死亡した…' :
+                       state.infection >= 100 ? '体が完全に腐敗し、ゾンビと化した…' : '飢えにより倒れた…';
+        addLog(`【GAME OVER】 ${reason}`, 'danger');
+        renderActionButtons();
+    } else if (state.phase > 100) {
+        if (state.eventStatus === 'SHELTER') closeStashPanel();
+        state.eventStatus = 'CLEAR';
+        updateHUD();
+        addLog('【GAME CLEAR!!】 100フェーズを生き延び、奇跡の脱出を果たした！！', 'success');
+        renderActionButtons();
+    }
+}
+
+// アクションパネルの動的描画
+function renderActionButtons() {
+    const panel = document.getElementById('action-panel');
+    panel.innerHTML = '';
+
+    if (state.eventStatus === 'EXPLORE') {
+        const btn = createActionButton('👣 次のフェーズへ進む (探索)', () => nextPhaseTurn(), 'bg-purple-800 hover:bg-purple-700');
+        panel.appendChild(btn);
+    } 
+    else if (state.eventStatus === 'ENCOUNTER') {
+        const enemy = state.currentEnemy;
+        const ammoCount = getAmmoCount();
+        let usableCount = 0;
+        Object.entries(WEAPONS).forEach(([id, w]) => {
+            if (!state.inventory.some(i => i.id === id)) return;
+            const immune = enemy.immuneTo && enemy.immuneTo.includes(id);
+            const noAmmo = w.usesAmmo && ammoCount <= 0;
+            let label;
+            if (immune) label = `${w.icon} ${w.name} (大群には効かない)`;
+            else if (noAmmo) label = `${w.icon} ${w.name} (弾切れ)`;
+            else {
+                const shots = Math.ceil(enemy.hp / w.power);
+                const info = w.usesAmmo ? `弾薬: ${ammoCount}発` : '使い切り';
+                label = `${w.icon} ${w.name}で撃つ (${info} / あと${shots}発で撃破)`;
+            }
+            const btn = createActionButton(label, () => executeFight(id), id === 'rocket_launcher' ? 'bg-orange-700 hover:bg-orange-600' : 'bg-red-800 hover:bg-red-700');
+            if (immune || noAmmo) btn.disabled = true; else usableCount++;
+            btn.classList.add('disabled:opacity-40', 'disabled:cursor-not-allowed');
+            panel.appendChild(btn);
+        });
+        // 使える武器がない時だけ素手で抵抗（大群には不可）
+        if (usableCount === 0 && !(enemy.immuneTo && enemy.immuneTo.includes('fist'))) {
+            panel.appendChild(createActionButton('👊 素手で抵抗する (倒せない・反撃を受ける)', () => executeFight('fist'), 'bg-red-900 hover:bg-red-800'));
+        }
+        const fleeBtn = createActionButton(`🏃 逃げる (${Math.round(Math.max(0.1, state.currentEvasion - (state.currentEnemy ? state.currentEnemy.evaPenalty : 0)) * 100)}%で成功)`, () => executeFlee(), 'bg-blue-800 hover:bg-blue-700');
+        
+        panel.appendChild(fleeBtn);
+
+        if (state.inventory.some(i => i.id === 'flare')) {
+            const flareBtn = createActionButton('🏮 発煙筒を使う (100%確定逃走)', () => executeFlareFlee(), 'bg-yellow-700 hover:bg-yellow-600');
+            panel.appendChild(flareBtn);
+        }
+    } 
+    else if (state.eventStatus === 'ITEM_FOUND') {
+        state.foundItems.forEach((item, idx) => {
+            const takeBtn = createActionButton(`📥 ${item.name} (${item.w}×${item.h}) を拾う`, () => acceptFoundItem(idx), 'bg-emerald-800 hover:bg-emerald-700');
+            panel.appendChild(takeBtn);
+        });
+        const leaveBtn = createActionButton('🚶 拾わずに進む', () => rejectRemainingItems(), 'bg-slate-800 hover:bg-slate-700');
+        panel.appendChild(leaveBtn);
+    } 
+    else if (state.eventStatus === 'HAPPENING') {
+        const openBtn = createActionButton('🔓 扉をこじ開けて探索する', () => resolveHappening(true), 'bg-amber-800 hover:bg-amber-700');
+        const passBtn = createActionButton('🚶 無視して通り過ぎる', () => resolveHappening(false), 'bg-slate-800 hover:bg-slate-700');
+        if (!state.happeningData.scouted && state.inventory.some(i => i.id === 'stethoscope')) {
+            const scoutBtn = createActionButton('🩺 聴診器で偵察する (1回限り)', () => scoutWithStethoscope(), 'bg-cyan-800 hover:bg-cyan-700');
+            panel.appendChild(scoutBtn);
+        }
+        panel.appendChild(openBtn);
+        panel.appendChild(passBtn);
+    } 
+    else if (state.eventStatus === 'SAFE') {
+        const hasCrowbar = state.inventory.some(i => i.id === 'crowbar');
+        if (hasCrowbar) {
+            const openBtn = createActionButton('🔧 バールでこじ開ける (バールは壊れる)', () => resolveSafe(true), 'bg-amber-800 hover:bg-amber-700');
+            panel.appendChild(openBtn);
+        } else {
+            const note = document.createElement('p');
+            note.className = 'text-xs text-slate-400 text-center';
+            note.textContent = '🔒 開けるにはバールが必要だ…';
+            panel.appendChild(note);
+        }
+        const passBtn = createActionButton(hasCrowbar ? '🚶 開けずに進む' : '🚶 諦めて進む', () => resolveSafe(false), 'bg-slate-800 hover:bg-slate-700');
+        panel.appendChild(passBtn);
+    } 
+    else if (state.eventStatus === 'SHELTER') {
+        // 保管庫 / ショップの切り替えボタン（拠点に常設）
+        const row = document.createElement('div');
+        row.className = 'flex gap-2';
+        const stashBtn = createActionButton('📦 保管庫', () => showShelterView('stash'),
+            state.shelterView === 'stash' ? 'bg-cyan-700 ring-2 ring-cyan-300' : 'bg-slate-800 hover:bg-slate-700');
+        const shopBtn = createActionButton(`🛒 ショップ (💰${state.gold}G)`, () => showShelterView('shop'),
+            state.shelterView === 'shop' ? 'bg-yellow-700 ring-2 ring-yellow-300' : 'bg-slate-800 hover:bg-slate-700');
+        row.appendChild(stashBtn);
+        row.appendChild(shopBtn);
+        panel.appendChild(row);
+        const btn = createActionButton('🚀 出撃準備完了 (次のステージへ)', () => leaveShelter(), 'bg-cyan-800 hover:bg-cyan-700');
+        panel.appendChild(btn);
+    } 
+    else if (state.eventStatus === 'GAMEOVER' || state.eventStatus === 'CLEAR') {
+        const btn = createActionButton('🔄 タイトル画面へ戻る', () => location.reload(), 'bg-purple-900 hover:bg-purple-800');
+        panel.appendChild(btn);
+    }
+}
+
+function createActionButton(text, onClick, bgClass) {
+    const btn = document.createElement('button');
+    btn.className = `pixel-btn w-full py-2.5 px-4 rounded text-xs md:text-sm font-bold text-white ${bgClass}`;
+    btn.textContent = text;
+    btn.onclick = () => {
+        AudioFX.play('click');
+        onClick();
+    };
+    return btn;
+}
+
+// キーボードショートカット
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'r' || e.key === 'R') {
+        rotateSelectedItem();
+    }
+});
+
+// ==========================================
+// 7. 初期化ロード
+// ==========================================
+window.onload = function() {
+    initCanvas();
+    renderCanvas();
+    initClassSelectionUI();
+};
+</script>
+</body>
+</html>
