@@ -97,10 +97,10 @@
         }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 h-screen w-screen overflow-hidden flex flex-col justify-between">
+<body class="bg-slate-950 text-slate-100 min-h-screen md:h-screen w-screen overflow-x-hidden md:overflow-hidden flex flex-col justify-between">
 
     <!-- 1. 職業選択モーダル (オーバーレイ) -->
-    <div id="class-select-modal" class="fixed inset-0 z-50 bg-slate-950/95 flex flex-col items-center justify-center p-4">
+    <div id="class-select-modal" class="fixed inset-0 z-50 bg-slate-950/95 flex flex-col items-center justify-start md:justify-center p-4 overflow-y-auto">
         <h1 class="text-3xl md:text-5xl font-bold text-purple-400 mb-2 tracking-wider text-center drop-shadow-[0_0_10px_rgba(168,85,247,0.8)]">
             ZOMBIE SURVIVAL
         </h1>
@@ -113,12 +113,17 @@
         <button id="btn-start-game" disabled onclick="startGame()" class="pixel-btn bg-purple-700 hover:bg-purple-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xl px-12 py-3 rounded">
             出撃準備完了 (GAME START)
         </button>
+
+        <a href="https://github.com/tensaitsubasakun-dotcom/zombie-survival/issues/new/choose" target="_blank" rel="noopener"
+           class="mt-4 text-xs md:text-sm text-purple-300 hover:text-purple-200 underline underline-offset-4">
+            💡 修正案・バグ報告を送る (GitHub)
+        </a>
     </div>
 
     <!-- 2. ゲーム画面最上部：ステータスHUD (固定) -->
-    <header class="h-[10vh] min-h-[65px] bg-slate-900 border-b-2 border-purple-900 px-4 py-2 flex items-center justify-between z-10 shadow-md">
+    <header class="md:h-[10vh] min-h-[65px] bg-slate-900 border-b-2 border-purple-900 px-4 py-2 flex flex-wrap md:flex-nowrap items-center justify-between gap-y-2 z-10 shadow-md">
         <!-- 進行度情報 -->
-        <div class="flex flex-col flex-1 min-w-0">
+        <div class="flex flex-col w-full md:w-auto md:flex-1 min-w-0">
             <span id="hud-stage-name" class="text-xs md:text-sm text-purple-400 font-bold">STAGE 1: 住宅街</span>
             <span id="hud-phase" class="text-lg md:text-xl font-bold text-yellow-400 tracking-wider">PHASE <span id="val-phase">01</span>/100</span>
             <div class="flex gap-2 text-[10px] md:text-xs mt-1 font-bold">
@@ -129,10 +134,10 @@
         </div>
 
         <!-- ステータスプログレスバー (ヘッダー中央に配置) -->
-        <div id="status-bars" class="flex items-center justify-center space-x-3 md:space-x-6 text-xs md:text-sm">
+        <div id="status-bars" class="flex items-center justify-between md:justify-center w-full md:w-auto space-x-3 md:space-x-6 text-xs md:text-sm">
             <!-- HP -->
-            <div class="w-24 md:w-36">
-                <div class="flex justify-between mb-1">
+            <div class="w-[31%] md:w-36">
+                <div class="flex justify-between mb-1 whitespace-nowrap gap-1">
                     <span class="text-red-400 font-bold">❤️ HP</span>
                     <span id="val-hp-text" class="text-slate-300">100/100</span>
                 </div>
@@ -142,8 +147,8 @@
             </div>
 
             <!-- 汚染度 -->
-            <div class="w-24 md:w-36">
-                <div class="flex justify-between mb-1">
+            <div class="w-[31%] md:w-36">
+                <div class="flex justify-between mb-1 whitespace-nowrap gap-1">
                     <span class="text-purple-400 font-bold">☣️ 汚染度</span>
                     <span id="val-infect-text" class="text-slate-300">0%</span>
                 </div>
@@ -153,8 +158,8 @@
             </div>
 
             <!-- 空腹度 -->
-            <div class="w-24 md:w-36">
-                <div class="flex justify-between mb-1">
+            <div class="w-[31%] md:w-36">
+                <div class="flex justify-between mb-1 whitespace-nowrap gap-1">
                     <span class="text-orange-400 font-bold">🍖 空腹度</span>
                     <span id="val-hunger-text" class="text-slate-300">100/100</span>
                 </div>
@@ -169,10 +174,10 @@
     </header>
 
     <!-- 3. メインエリア：画面上部 3/4 (2Dゲームビュー＆ログ・アクション) -->
-    <main class="h-[60vh] flex flex-col md:flex-row p-2 gap-2 bg-slate-950 relative overflow-hidden">
+    <main class="md:h-[60vh] flex flex-col md:flex-row p-2 gap-2 bg-slate-950 relative overflow-hidden">
         
         <!-- 左側 (または全幅)：2D Canvas アニメーション画面 -->
-        <div class="w-full md:w-1/2 h-full relative rounded border-2 border-slate-800 bg-black overflow-hidden flex items-center justify-center">
+        <div class="w-full md:w-1/2 h-[220px] md:h-full relative rounded border-2 border-slate-800 bg-black overflow-hidden flex items-center justify-center">
             <canvas id="gameCanvas" class="w-full h-full object-cover"></canvas>
             <div class="scanlines absolute inset-0 pointer-events-none"></div>
             <!-- Canvasオーバーレイテキスト (イベント通知等) -->
@@ -182,7 +187,7 @@
         </div>
 
         <!-- 右側：イベント＆ダイアログ＆アクション制御パネル -->
-        <div class="w-full md:w-1/2 h-full flex flex-col justify-between bg-slate-900/90 border-2 border-purple-950 p-3 rounded pixel-card">
+        <div class="w-full md:w-1/2 h-[320px] md:h-full flex flex-col justify-between bg-slate-900/90 border-2 border-purple-950 p-3 rounded pixel-card">
             
             <!-- ログテキスト出力エリア -->
             <div id="game-log" class="flex-1 overflow-y-auto mb-3 pr-2 space-y-2 text-xs md:text-sm">
@@ -197,10 +202,10 @@
     </main>
 
     <!-- 4. メインエリア：画面下部 1/4 (インベントリ＆スタッシュ) -->
-    <footer class="h-[30vh] min-h-[220px] bg-slate-900 border-t-2 border-purple-900 p-2 flex flex-col md:flex-row gap-3 relative z-10">
+    <footer class="md:h-[30vh] md:min-h-[220px] bg-slate-900 border-t-2 border-purple-900 p-2 flex flex-col md:flex-row gap-3 relative z-10">
         
         <!-- 左：インベントリ (カバン 5x3 グリッド) -->
-        <div class="w-full md:w-1/2 h-full bg-slate-950 p-2 rounded border border-slate-800 flex flex-col justify-between">
+        <div class="w-full md:w-1/2 min-h-[200px] md:h-full bg-slate-950 p-2 rounded border border-slate-800 flex flex-col justify-between">
             <div class="flex justify-between items-center mb-1">
                 <span class="text-xs md:text-sm text-purple-300 font-bold flex items-center gap-1">
                     🎒 カバン (<span id="inv-capacity-text">5×3=15マス</span>)
@@ -217,7 +222,7 @@
         </div>
 
         <!-- 右：選択中アイテム情報 ＆ アクション操作・拠点時のスタッシュ -->
-        <div class="w-full md:w-1/2 h-full bg-slate-950 p-2 rounded border border-slate-800 flex flex-col justify-between">
+        <div class="w-full md:w-1/2 min-h-[230px] md:h-full bg-slate-950 p-2 rounded border border-slate-800 flex flex-col justify-between">
             
             <!-- 通常時：アイテム情報と個別操作 -->
             <div id="item-detail-panel" class="h-full flex flex-col justify-between">
@@ -341,6 +346,9 @@ const AudioFX = {
         } catch(e) {}
     }
 };
+
+// 修正案・バグ報告の送り先 (GitHub Issues)
+const FEEDBACK_URL = 'https://github.com/tensaitsubasakun-dotcom/zombie-survival/issues/new/choose';
 
 // 職業定義
 const CLASSES = {
@@ -1876,6 +1884,8 @@ function renderActionButtons() {
     else if (state.eventStatus === 'GAMEOVER' || state.eventStatus === 'CLEAR') {
         const btn = createActionButton('🔄 タイトル画面へ戻る', () => location.reload(), 'bg-purple-900 hover:bg-purple-800');
         panel.appendChild(btn);
+        const fb = createActionButton('💡 修正案・バグ報告を送る', () => window.open(FEEDBACK_URL, '_blank', 'noopener'), 'bg-slate-800 hover:bg-slate-700');
+        panel.appendChild(fb);
     }
 }
 

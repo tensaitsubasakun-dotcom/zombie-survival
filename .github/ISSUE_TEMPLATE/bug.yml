@@ -1,0 +1,32 @@
+name: 🐛 バグ報告
+description: おかしな動き・止まる・表示が崩れるなど
+title: "【バグ】"
+labels: ["バグ報告"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: 何が起きた？
+      placeholder: 例）金庫を開けたあと「拾う」を押しても反応しない
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: そのとき何をしていた？
+      placeholder: 例）警察官でステージ2、カバンがいっぱいの状態で金庫を開けた
+    validations:
+      required: false
+  - type: input
+    id: device
+    attributes:
+      label: 端末・ブラウザ
+      placeholder: 例）iPhone / Safari
+    validations:
+      required: false
+  - type: input
+    id: name
+    attributes:
+      label: あなたの名前（ニックネームでOK）
+    validations:
+      required: false

@@ -1,0 +1,30 @@
+name: 💡 修正案・アイデア
+description: 「ここをこう変えたい」「こんな要素がほしい」を送る
+title: "【修正案】"
+labels: ["修正案"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: どの部分？
+      options:
+        - バランス調整（敵の強さ・アイテムの性能・確率など）
+        - 新しい要素（アイテム・敵・イベント・職業など）
+        - 見た目・操作性
+        - その他
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: 修正案の内容
+      description: できるだけ具体的に（数字があると助かります）
+      placeholder: 例）ブルートの攻撃力を10→15にしてほしい。今だと弱すぎて怖くない。
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: あなたの名前（ニックネームでOK）
+    validations:
+      required: false
