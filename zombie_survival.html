@@ -1248,24 +1248,20 @@ function drawPixelPlayer(x, y, tick) {
     ctx.fillRect(x - 8, y - 28 + bob, 10, 16);
 }
 
-function drawPixelZombie(x, y, tick) {
-    const bob = Math.cos(tick * 0.12) * 3;
-    const advance = Math.sin(tick * 0.05) * 10;
-    const zX = x - advance;
+// ゾンビのドット絵 (32×32、左向き。足元は30行目、体の中心は17列目付近)
+const ZOMBIE_SPRITE = (() => { const img = new Image(); img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABuklEQVR42uVWvUrDUBg9KQVJAgEp1DVdolKKyeQLuIuTPoKDD5G9oyI+QrdSXIWiUMQpgVLUuyS6KQ2WoikuxqHcctNGzU1yK+I3hZPknu+e7xf47yZl/VE3zCgJ94nLdWY5K/GBXZthFycvzBfT92kdkXjJKbFVWwcAON59ghPAcDhK5UQpawgoMXVk52g10znlPAlEnchjXAr4xJVatgcAaNke6PO8pZU/Vwh63eYCliUMmZPwKxs4AfqdsXgFKNnACWJY3aqIbURJDYhVpWV7XM2Iuwp84kq6YUa9bhPhexXKyjOOL09/pxU3drUYxhP7QnJAITLqVgV1qwKFyN/OiEIV0A0zOtxrwLl7juHWRhUAcNbui5kFLPlPltaJkgjypeUAvWlsPsyFpfAyHG29xmp+6Qqw3Y+35HIr4BNXQmdaZufNq0Ty0JhMVWoLUsAnrkRvrhtmtL25thAauqQIX0hmo/njAXAAhYSAwbeo5GrF9Pas3dw+ceVHrjJ8DEoxUgBIckpoH2Cttq8svxGx0g+cgNuJcpEKDK9VeCQUvxGN3yYxTFNlsJimyqmTMJMCmiqnwv6EfQJME76h65vVxAAAAABJRU5ErkJggg=='; return img; })();
 
-    // ゾンビ体
-    ctx.fillStyle = '#15803d';
-    ctx.fillRect(zX, y - 32 + bob, 20, 24);
-    // 頭
-    ctx.fillStyle = '#22c55e';
-    ctx.fillRect(zX + 2, y - 46 + bob, 16, 16);
-    // 目 (赤く光る)
-    ctx.fillStyle = '#ef4444';
-    ctx.fillRect(zX + 4, y - 42 + bob, 3, 3);
-    ctx.fillRect(zX + 10, y - 42 + bob, 3, 3);
-    // 手
-    ctx.fillStyle = '#15803d';
-    ctx.fillRect(zX - 10, y - 24 + bob, 12, 5);
+// ゾンビ描画（x: 体の左端あたり / y-8 が足元の高さ。タイタン・ボスは drawScaledZombie で拡大）
+function drawPixelZombie(x, y, tick) {
+    // ゆらゆら前後に揺れながら、よろめくように上下する（足は地面から下に沈まない）
+    const advance = Math.round(Math.sin(tick * 0.05) * 10);
+    const bob = Math.round(-Math.abs(Math.cos(tick * 0.06)) * 2);
+    const centerX = x + 10 - advance;
+    const feetY = y - 8;
+    if (!ZOMBIE_SPRITE.complete) return;
+    const scale = SPRITE_SCALE;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(ZOMBIE_SPRITE, Math.round(centerX - 17 * scale), Math.round(feetY - 31 * scale + bob), 32 * scale, 32 * scale);
 }
 
 // 大型ゾンビ（タイタン・ボス）。groundX/groundY は足元の位置
