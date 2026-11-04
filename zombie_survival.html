@@ -1928,7 +1928,13 @@ function triggerAreaEvent() {
         offerItems([{ id: weaponId }], `【フェーズ ${state.phase} イベント】 🧰 放棄された軍の武器ケースを発見！`);
         return;
     }
-    if (candidates.length === 0) return; // 発生できるイベントが残っていない
+    if (candidates.length === 0) {
+        // このステージで起きるイベントが出尽くした：何も起きずにフェーズを進める
+        addLog(`【フェーズ ${state.phase}】 静寂が包む。何も起こらなかった。`);
+        state.eventStatus = 'EVENT';
+        advancePhaseCount();
+        return;
+    }
 
     const ev = candidates[Math.floor(Math.random() * candidates.length)];
     if (ev.oncePerGame) state.onceEvents[ev.id] = true;
