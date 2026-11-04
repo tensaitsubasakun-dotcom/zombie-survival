@@ -141,11 +141,6 @@
         <div class="flex flex-col w-full md:w-auto md:flex-1 min-w-0">
             <span id="hud-stage-name" class="text-xs md:text-sm text-purple-400 font-bold">STAGE 1: 住宅街</span>
             <span id="hud-phase" class="text-lg md:text-xl font-bold text-yellow-400 tracking-wider">PHASE <span id="val-phase">01</span>/100</span>
-            <div class="flex gap-2 text-[10px] md:text-xs mt-1 font-bold">
-                <span class="text-blue-300 bg-blue-900/50 px-1 rounded border border-blue-800">🏃回避:<span id="val-evasion">50</span>%</span>
-                <span class="text-red-300 bg-red-900/50 px-1 rounded border border-red-800">⚠️遭遇:<span id="val-encounter">20</span>%</span>
-                <span class="text-yellow-300 bg-yellow-900/50 px-1 rounded border border-yellow-700">💰<span id="val-gold">0</span>G</span>
-            </div>
         </div>
 
         <!-- ステータスプログレスバー (ヘッダー中央に配置) -->
@@ -236,6 +231,13 @@
                 <div id="inventory-grid" class="grid grid-cols-5 gap-1 bg-slate-900 p-1.5 rounded border border-slate-800">
                     <!-- JSでセルとアイテム要素を重畳描画 -->
                 </div>
+            </div>
+
+            <!-- カバンの下：回避率・遭遇率・所持金 -->
+            <div id="stat-badges" class="flex justify-center gap-2 text-[11px] md:text-xs mt-1 font-bold">
+                <span class="text-blue-300 bg-blue-900/50 px-1.5 py-0.5 rounded border border-blue-800">🏃回避:<span id="val-evasion">50</span>%<span id="val-evasion-trend"></span></span>
+                <span id="badge-encounter" class="text-red-300 bg-red-900/50 px-1.5 py-0.5 rounded border border-red-800">⚠️遭遇:<span id="val-encounter">20</span>%<span id="val-encounter-trend"></span></span>
+                <span class="text-yellow-300 bg-yellow-900/50 px-1.5 py-0.5 rounded border border-yellow-700">💰<span id="val-gold">0</span>G</span>
             </div>
         </div>
 
@@ -668,7 +670,20 @@ function updateHUD() {
     const goldEl = document.getElementById('val-gold');
     if (goldEl) goldEl.textContent = state.gold;
     const encounterEl = document.getElementById('val-encounter');
-    if (encounterEl) encounterEl.textContent = Math.round(state.currentEncounter * 100);
+    if (encounterEl) {
+        // 次のフェーズで確定遭遇（防犯アラーム・金属探知機・タイタン）なら100%
+        const forced = !!state.forcedEncounter;
+        const shown = forced ? 100 : Math.round(state.currentEncounter * 100);
+        const base = Math.round((STAGES[curStageIdx()] ? STAGES[curStageIdx()].encounter : 0.2) * 100);
+        encounterEl.textContent = shown;
+        setTrend('val-encounter-trend', shown - base, forced ? '確定' : null);
+        const badge = document.getElementById('badge-encounter');
+        if (badge) badge.classList.toggle('gauge-danger-frame', forced);
+    }
+    if (evasionEl) {
+        const baseEva = 50 + (state.selectedClass && state.selectedClass.id === 'hunter' ? 25 : 0);
+        setTrend('val-evasion-trend', Math.round(state.currentEvasion * 100) - baseEva, null);
+    }
 
     // HP Bar
     document.getElementById('val-hp-text').textContent = `${Math.max(0, state.hp)}/${state.maxHp}`;
@@ -691,6 +706,14 @@ function updateHUD() {
     const maxSpace = state.cols * state.rows;
     document.getElementById('inv-capacity-text').textContent = `${state.cols}×${state.rows}=${maxSpace}マス`;
     document.getElementById('inv-usage-text').textContent = `使用: ${usedSpace}/${maxSpace}`;
+}
+
+// 数値の横に、基本値からの増減を ↑/↓ で表示
+function setTrend(id, diff, label) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (label) { el.textContent = ` (${label})`; return; }
+    el.textContent = diff > 0 ? ` ↑${diff}` : diff < 0 ? ` ↓${-diff}` : '';
 }
 
 function setGaugeDanger(barId, textId, isDanger) {
