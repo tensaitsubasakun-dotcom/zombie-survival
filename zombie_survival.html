@@ -413,11 +413,11 @@ const STAGES = [
     { name: '住宅街', desc: '民家の台所に食料が残っている。', encounter: 0.25, item: 0.35, happening: 0.15, event: 0.15, foodRate: 0.5 },
     { name: '学校', desc: 'ハプニング多発。校内放送に注意。給食室に食料あり。', encounter: 0.25, item: 0.20, happening: 0.40, event: 0.10, foodRate: 0.5 },
     { name: '警察署', desc: '銃器・弾薬豊富。遭遇率高。', encounter: 0.45, item: 0.30, happening: 0.10, event: 0.15 },
-    { name: '病院', desc: '滞在で毎ターン汚染度上昇。', encounter: 0.35, item: 0.40, happening: 0.10, event: 0.15, infectPerTurn: 20 },
-    { name: 'モール', desc: '最高レアと最高遭遇率の死地。', encounter: 0.55, item: 0.40, happening: 0.10, event: 0.15 },
+    { name: '病院', desc: '滞在で毎ターン汚染度上昇。', encounter: 0.35, item: 0.40, happening: 0.10, event: 0.15, infectPerTurn: 15 },
+    { name: 'モール', desc: '最高レアと最高遭遇率の死地。', encounter: 0.45, item: 0.35, happening: 0.10, event: 0.10 },
     { name: '空港', desc: '軍事用品。金属探知機リスク。', encounter: 0.35, item: 0.35, happening: 0.15, event: 0.15 },
-    { name: '館', desc: 'ブービートラップ多数。高価値品。', encounter: 0.40, item: 0.30, happening: 0.20, event: 0.15 },
-    { name: '刑務所', desc: '最悪の死地。重装甲ゾンビ。', encounter: 0.50, item: 0.20, happening: 0.15, event: 0.15 },
+    { name: '館', desc: 'ブービートラップ多数。高価値品。', encounter: 0.40, item: 0.25, happening: 0.20, event: 0.15 },
+    { name: '刑務所', desc: '最悪の死地。重装甲ゾンビ。', encounter: 0.40, item: 0.20, happening: 0.25, event: 0.15 },
     { name: '脱出地点', desc: '最終防衛線。最後のフェーズで極変異体「ホルゼイン」が現れる。', encounter: 0.30, item: 0.70, happening: 0.00, event: 0.00 }
 ];
 
@@ -1893,7 +1893,7 @@ const STAGE_EVENTS = {
     ],
     8: [ // 刑務所
         { id: 'lockdown', name: '独房のロックダウン', icon: '🔒', text: '自動ドアが閉鎖された！看守の鍵を使って扉を開けるまで、フェーズが進まない。', lockdown: true, entryOnly: true },
-        { id: 'contaminated', name: '汚染された監獄', icon: '☣️', text: '監獄全体が汚染されている！刑務所にいる限り毎フェーズ汚染度+15。', infect: 15 }
+        { id: 'contaminated', name: '汚染された監獄', icon: '☣️', text: '監獄全体が汚染されている！刑務所にいる限り毎フェーズ汚染度+15（ガスマスクがあれば無効）。', infect: 15, gasMaskBlocks: true }
     ]
 };
 
@@ -2078,7 +2078,9 @@ const NO_COMMON_SAFE_STAGES = [0, 1, 2, 3];
 
 function triggerStageHappening() {
     const idx = curStageIdx();
-    const pool = ['door', ...(NO_COMMON_SAFE_STAGES.includes(idx) ? [] : ['safe']), ...(STAGE_HAPPENINGS[idx] || [])];
+    // 「看守の死体」は独房のロックダウンで閉じ込められている時だけ発生する
+    const stageHaps = (STAGE_HAPPENINGS[idx] || []).filter(id => id !== 'guard_corpse' || isLockedDown());
+    const pool = ['door', ...(NO_COMMON_SAFE_STAGES.includes(idx) ? [] : ['safe']), ...stageHaps];
     const id = pool[Math.floor(Math.random() * pool.length)];
     runHappening(id);
 }
