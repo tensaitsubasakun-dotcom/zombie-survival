@@ -475,9 +475,9 @@ const ITEM_DB = {
     'bandage': { id: 'bandage', name: '包帯', w: 2, h: 1, type: 'heal', color: 'bg-emerald-900', border: 'border-emerald-500', icon: '🩹', desc: '使用するとHPを40回復する。' },
     'medkit': { id: 'medkit', name: '救急箱', w: 2, h: 2, type: 'heal', color: 'bg-emerald-800', border: 'border-emerald-400', icon: '🧰', desc: '重傷を治療する。使用するとHPを80回復する。' },
     'antibiotics': { id: 'antibiotics', name: '抗生剤', w: 1, h: 1, type: 'heal', color: 'bg-purple-900', border: 'border-purple-500', icon: '💊', desc: '体内のウイルス増殖を抑え、汚染度を35%低下させる。' },
-    'canned_food': { id: 'canned_food', name: '缶詰', w: 1, h: 1, type: 'food', color: 'bg-amber-900', border: 'border-amber-500', icon: '🥫', desc: '安全な保存食。使用すると空腹度を20回復する。' },
+    'canned_food': { id: 'canned_food', name: '缶詰', w: 1, h: 1, type: 'food', color: 'bg-amber-900', border: 'border-amber-500', icon: '🥫', desc: '安全な保存食。使用すると空腹度を40回復する。' },
     'dog_food': { id: 'dog_food', name: 'ドッグフード', w: 1, h: 1, type: 'food', color: 'bg-amber-950', border: 'border-amber-700', icon: '🐶', desc: '空腹度を25回復するが、衛生面から汚染度が+5%上昇する。' },
-    'raw_meat': { id: 'raw_meat', name: '血の滴る生肉', w: 1, h: 2, type: 'food', color: 'bg-red-900', border: 'border-red-500', icon: '🥩', desc: '空腹度を100回復(HP-10ダメ)。投擲で100%逃走。所持中遭遇率+15%。' },
+    'raw_meat': { id: 'raw_meat', name: '血の滴る生肉', w: 1, h: 2, type: 'food', color: 'bg-red-900', border: 'border-red-500', icon: '🥩', desc: '空腹度を70回復(HP-10ダメ)。投擲で100%逃走。所持中遭遇率+15%。' },
     'flashlight': { id: 'flashlight', name: '懐中電灯', w: 1, h: 2, type: 'utility', color: 'bg-yellow-900', border: 'border-yellow-400', icon: '🔦', desc: '周囲を明るく照らす。所持しているだけで回避率が+10%される。' },
     'flare': { id: 'flare', name: '発煙筒', w: 1, h: 1, type: 'utility', color: 'bg-orange-800', border: 'border-orange-500', icon: '🏮', desc: '戦闘時に使用すると、100%安全に確定逃走できる。' },
     'stethoscope': { id: 'stethoscope', name: '聴診器', w: 1, h: 1, type: 'utility', color: 'bg-cyan-950', border: 'border-cyan-500', icon: '🩺', desc: '固く閉ざされた部屋の扉に当てて、中に罠があるか偵察できる。使うと壊れる(1回限り)。' },
@@ -983,8 +983,8 @@ function useSelectedItem() {
 // 食料の効果（手動で食べた時も、自動で食べた時も共通）
 function applyFoodEffect(id, prefix = '') {
     if (id === 'canned_food') {
-        state.hunger = Math.min(state.maxHunger, state.hunger + 20);
-        addLog(`${prefix}缶詰を食べた。空腹度が20回復。`, 'success');
+        state.hunger = Math.min(state.maxHunger, state.hunger + 40);
+        addLog(`${prefix}缶詰を食べた。空腹度が40回復。`, 'success');
         AudioFX.play('heal');
     } else if (id === 'dog_food') {
         state.hunger = Math.min(state.maxHunger, state.hunger + 25);
@@ -992,9 +992,9 @@ function applyFoodEffect(id, prefix = '') {
         addLog(`${prefix}ドッグフードを食べた。空腹+25、汚染度+5%。`, 'warning');
         AudioFX.play('heal');
     } else if (id === 'raw_meat') {
-        state.hunger = Math.min(state.maxHunger, state.hunger + 100);
+        state.hunger = Math.min(state.maxHunger, state.hunger + 70);
         state.hp -= 10;
-        addLog(`${prefix}生肉を食らった！空腹全快するも食中毒でHP-10ダメージ。`, 'danger');
+        addLog(`${prefix}生肉を食らった！空腹度が70回復するも、食中毒でHP-10ダメージ。`, 'danger');
         AudioFX.play('hit');
     }
 }
