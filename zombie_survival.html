@@ -225,6 +225,12 @@
                     <span id="inv-usage-text" class="text-xs text-slate-400">使用: 0/15</span>
                 </span>
             </div>
+            <!-- 「カバン」見出しの下：回避率・遭遇率・所持金 -->
+            <div id="stat-badges" class="flex justify-start gap-2 text-[11px] md:text-xs mb-1 font-bold">
+                <span class="text-blue-300 bg-blue-900/50 px-1.5 py-0.5 rounded border border-blue-800">🏃回避:<span id="val-evasion">50</span>%<span id="val-evasion-trend"></span></span>
+                <span id="badge-encounter" class="text-red-300 bg-red-900/50 px-1.5 py-0.5 rounded border border-red-800">⚠️遭遇:<span id="val-encounter">20</span>%<span id="val-encounter-trend"></span></span>
+                <span class="text-yellow-300 bg-yellow-900/50 px-1.5 py-0.5 rounded border border-yellow-700">💰<span id="val-gold">0</span>G</span>
+            </div>
 
             <!-- インベントリグリッド本体 -->
             <div id="inventory-grid-container" class="flex-1 flex items-center justify-center p-1 overflow-auto">
@@ -233,12 +239,6 @@
                 </div>
             </div>
 
-            <!-- カバンの下：回避率・遭遇率・所持金 -->
-            <div id="stat-badges" class="flex justify-center gap-2 text-[11px] md:text-xs mt-1 font-bold">
-                <span class="text-blue-300 bg-blue-900/50 px-1.5 py-0.5 rounded border border-blue-800">🏃回避:<span id="val-evasion">50</span>%<span id="val-evasion-trend"></span></span>
-                <span id="badge-encounter" class="text-red-300 bg-red-900/50 px-1.5 py-0.5 rounded border border-red-800">⚠️遭遇:<span id="val-encounter">20</span>%<span id="val-encounter-trend"></span></span>
-                <span class="text-yellow-300 bg-yellow-900/50 px-1.5 py-0.5 rounded border border-yellow-700">💰<span id="val-gold">0</span>G</span>
-            </div>
         </div>
 
         <!-- 右：選択中アイテム情報 ＆ アクション操作・拠点時のスタッシュ -->
