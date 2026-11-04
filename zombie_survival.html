@@ -969,20 +969,8 @@ function useSelectedItem() {
         state.infection = Math.max(0, state.infection - 35);
         addLog('抗生剤を服用。汚染度が35%低下した。', 'success');
         AudioFX.play('heal');
-    } else if (item.id === 'canned_food') {
-        state.hunger = Math.min(state.maxHunger, state.hunger + 20);
-        addLog('缶詰を食べた。空腹度が20回復。', 'success');
-        AudioFX.play('heal');
-    } else if (item.id === 'dog_food') {
-        state.hunger = Math.min(state.maxHunger, state.hunger + 25);
-        state.infection = Math.min(100, state.infection + 5);
-        addLog('ドッグフードを食べた。空腹+25、汚染度+5%。', 'warning');
-        AudioFX.play('heal');
-    } else if (item.id === 'raw_meat') {
-        state.hunger = Math.min(state.maxHunger, state.hunger + 100);
-        state.hp -= 10;
-        addLog('生肉を食らった！空腹全快するも食中毒でHP-10ダメージ。', 'danger');
-        AudioFX.play('hit');
+    } else if (item.type === 'food') {
+        applyFoodEffect(item.id);
     }
 
     state.inventory.splice(idx, 1);
@@ -990,6 +978,42 @@ function useSelectedItem() {
     selectItem(null);
     updateHUD();
     checkGameOver(); // 生肉・ドッグフードで死亡条件に達した場合の判定
+}
+
+// 食料の効果（手動で食べた時も、自動で食べた時も共通）
+function applyFoodEffect(id, prefix = '') {
+    if (id === 'canned_food') {
+        state.hunger = Math.min(state.maxHunger, state.hunger + 20);
+        addLog(`${prefix}缶詰を食べた。空腹度が20回復。`, 'success');
+        AudioFX.play('heal');
+    } else if (id === 'dog_food') {
+        state.hunger = Math.min(state.maxHunger, state.hunger + 25);
+        state.infection = Math.min(100, state.infection + 5);
+        addLog(`${prefix}ドッグフードを食べた。空腹+25、汚染度+5%。`, 'warning');
+        AudioFX.play('heal');
+    } else if (id === 'raw_meat') {
+        state.hunger = Math.min(state.maxHunger, state.hunger + 100);
+        state.hp -= 10;
+        addLog(`${prefix}生肉を食らった！空腹全快するも食中毒でHP-10ダメージ。`, 'danger');
+        AudioFX.play('hit');
+    }
+}
+
+// 空腹度が0になったら、カバンの食料を自動で食べる（体に優しい順：缶詰→ドッグフード→生肉）
+const AUTO_EAT_ORDER = ['canned_food', 'dog_food', 'raw_meat'];
+function autoEatIfStarving() {
+    while (state.hunger <= 0) {
+        const id = AUTO_EAT_ORDER.find(f => state.inventory.some(i => i.id === f));
+        if (!id) return false; // 食料がない
+        state.hunger = 0;
+        const idx = state.inventory.findIndex(i => i.id === id);
+        const eaten = state.inventory[idx];
+        state.inventory.splice(idx, 1);
+        if (state.selectedInstanceId === eaten.instanceId) selectItem(null, false);
+        applyFoodEffect(id, '🍽️【自動】空腹で倒れそうになり、');
+    }
+    renderInventoryGrid();
+    return true;
 }
 
 // 選択中アイテム破棄
@@ -1299,6 +1323,7 @@ function nextPhaseTurn() {
 
     // 空腹度消費
     state.hunger -= 5;
+    autoEatIfStarving();
     if (state.hunger <= 0) {
         state.hunger = 0;
         addLog('【餓死】 空腹度が0になった…！', 'danger');
@@ -1525,6 +1550,7 @@ function executeFlee() {
     }
     
     state.hunger -= 5; // 逃走による追加疲労
+    autoEatIfStarving();
     const roll = Math.random();
 
     if (roll < fleeChance) {
@@ -2205,6 +2231,7 @@ function applyBossAttack() {
     } else {
         state.hunger -= 30;
         addLog(`${a.icon} ホルゼインの叫び声で体力を奪われた！ 空腹度-30！`, 'danger');
+        autoEatIfStarving();
     }
     AudioFX.play('hit');
 }
