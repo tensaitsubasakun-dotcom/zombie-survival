@@ -1087,6 +1087,18 @@ const POLICE_WALK_FRAMES = [
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAByElEQVR42u1WMUvDQBh9kTiIUBBEDCrEFqJOjVAQoa6CuFkXiTiq/6BddNZ/EKirW3Gtu0KXiO1WA4aASkScBBGXxkGvbdJeuEtyuvhNIbnLe/e97333AX8cEu8GVdP9Ye9duynFISDzAq9ubNOW+HGISKzgEcCBaNRrXCRG0tDRNByYhgOhErAAmIaDfF1AERL9394/mH+cGR9jkkLiKcKliZ4BquXSwJpi5YLbFYlroB+UAPMUIXcGquUS2i0Hi/kslZBwF9DAhbrAtZsSNN2nnZ5IIaQRhaU429EDmeBNe2wJiB2PbmTM758CAD5XDn5Hgv527N67XfD1zT3xtyEBNw0Hh+fZAImXxwdMzc7Bs61YMnBJQMDTDDnJZjWn4vK4A6CD/K4gAuGrmKRezandZ2E1EAZv1GsIkyFEPNuK1QfkuODhuD7Z+ukJ8FO5C1RN93s//e5yilbA3e0V9fpNNQMk2q3gILKwvDZ0XVwbylG9v1jpDZq0aRgAXp+fxNgw6kSebUHRConAmRuRqum+ohUG0u3ZFianZwAAoxkFUVkSOhULzQDt9ESipFlgasX91iN2o30npFkdIbOO2FEAw0j9B2t8AeXG3V2ANqlCAAAAAElFTkSuQmCC',
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABx0lEQVR42u1WPUvDUBQ9CVlEEFyEgkJsIerUCgUpKG5icbN1kIij+g/qooOT4h8IVNzcimvdFbpUbLcaMAQ/iIhTQUSE1unWxDblvZc+Xbxb8j7OfefcL+CPTeE9oBupdq//rl1TRBzQeIEz2XzYlraIIworeB/ggFXKJS4n1EHoaJkOLNOBVAlYACzTQbIsIQhJ/+bbO/PFI8NDTFIoPEE4M/qdAMVCrmvP/O45d1ZEjgE/KAHzBCE3A8VCDo26g+lkPNQh6VkQBi41C1y7psBItcNeT1JIKUQ/pThZTwWY4KVdWAJKx71rDZNbRwCAj7nt35HAX47dO7cDvrSyKb8bErhlOtg5iweceHl8wNj4BDy7KiQDlwQEPkjTohzWEzou9lsAWkhuiN3BxQDRTuD+b1FTWfS/OlxFpVzqub58oEaSRmUBJ/PsahcLxEwmmw8d1yJlgf9SasdTswsdcL80ekLnnoi4mlHMSAfY8I9px4stoaoonAUxI92JC5KpUXfkp+Hr8xMA4LPpgRhZO72XW4iIfj+4a9cUz64GGBEJQhV/bKro66n3R2WBKQZuby4D026/dXKaNR401hG7H0Avp/6N1b4ArO/g5Wx8vFQAAAAASUVORK5CYII='
 ].map(src => { const img = new Image(); img.src = src; return img; });
+
+// 医師の歩行スプライト (32×32ドット絵 2コマ)
+const DOCTOR_WALK_FRAMES = [
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAB5UlEQVR42u1WT0sCQRx9I15ESdwOgUJohzVP7UHoIt0i6NBBT3UIuvTnE2jfQD+BQVG3okvHIOokXYKi9aQtVEtQEIKpGdFpujSLba7uzLp2qN9pZ2Zn3m/e+82bAf56EN4JUVmh3fp1TSWuJsCAE6Gu+Ki8EKFEiF1wK+BuifAk4fntGvA6mbydzfzoS+WOuNawxYCuqYRp3A+ctwYcS8C7Y0enIBGi2M5mUC3fYXJqwjIh14vQCtzVItQ1lUBWqNXumRSu+IBZip1F5RsTIsUnJAFzw9HFTcRWCwCAj+m14RhGVFZoo1WjjVaNXldvqBSJ09vHZ7q8e0ClSJyKruuxC65enuKk8gAAiIUlAEDrtdH3khqoBHOJ8d/x6076zTJIkTg9vLiiogwQu/SzuH+qGzLcP9WhNdvYSC9hxO8TOgkeHnAlOYtYWDJqgMlSPNoXrgMvD3hnuzPkYADn+fSXJ4DyMNHTCdtnxZ4XDmMiFpagLIg5Yd9TUC3fgcuuByWBrqkklQNl36JV7ogBXVOJ1a6U5OzwnuVRWaEzuazRLuULBiszuSwCz00AwPHe1vBfRK5K0Gv3TKJSvoD2WBAAML+yzu0Ftpyw9fZutM2OZx7v9o/jF9GI3/cjqU4A8/h/8MQn2qDw3rA9XDcAAAAASUVORK5CYII=',
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAB40lEQVR42u1WPUvDUBQ9KV2KpcW4tSCtQ2on31BwEbfiJqiD6OCo+AtS/0H7CyoouikuHRwEiV3ERaiYTtaAGgQLpVBrrYjTc3qhjSnNS0w66N3e57nv3HPvu8BfN4H3QEIi1Gpe11TBUwcYcHrcEh93r4IjRwS74IOArRzhcSIwag0E3Rzek1d+zM3lSlx32GJA11SBxXgYOK8GXIeA98WusiA9TrEnr6BWfcT0zNRAhzwX4SBwT0Woa6oAidBBr2eh8KQOmEOxv0b6mHAiPkchYNVwYm0Hyc0CAOBrdsufgpGQCG13mrTdadLb2j0V4yn68NKgGwfHVIynqNN7A3bB1YqC87tnAEAyJgIAOu/toZ/Ur4ZgIT05mnrdS785DGI8RU+ub6hTBrj+gqd6y6A/GRNRLp9Ce+tie3kdkbGQNxpISIRe5ZdBMlnLdSkaRrF0BE9EyMCZLS2u4qneMsaMDSkahlpRHAlR4GnB1Ioy9EKSyXIVpaCtEmyRZiST7XOoe1H0tyFRK4qhCxamWvXRPwfMDPBSz92UzudkhBtvAICzw13omiqweWaX+YL/HZFbCzh9PRPoZb5g7J3PydypaCsNOx+fxjgyFuqj2bxutce1CM1lNiER2gvgtAz/GwB8A9iv6P5MdEbmAAAAAElFTkSuQmCC'
+].map(src => { const img = new Image(); img.src = src; return img; });
+
+// 職業ごとの歩行スプライト（ないものは従来の四角いキャラで描画）
+const CLASS_WALK_FRAMES = {
+    police: POLICE_WALK_FRAMES,
+    doctor: DOCTOR_WALK_FRAMES
+};
 const SPRITE_SCALE = 2;        // 32px → 64px で描画
 const WALK_FRAME_TICKS = 36;   // 何フレームごとにコマを切り替えるか (大きいほどゆっくり)
 const WALK_BOB_HEIGHT = 3;     // 歩行時の縦揺れの高さ (px)
@@ -1116,8 +1128,9 @@ function renderCanvas() {
     drawStageBackground(stageIdx);
 
     // 2. プレイヤー描画
-    if (state.selectedClass && state.selectedClass.id === 'police') {
-        drawPoliceSprite(80, 240, animTick);
+    const walkFrames = state.selectedClass && CLASS_WALK_FRAMES[state.selectedClass.id];
+    if (walkFrames) {
+        drawWalkSprite(walkFrames, 80, 240, animTick);
     } else {
         drawPixelPlayer(80, 200, animTick);
     }
@@ -1161,12 +1174,12 @@ function drawStageBackground(stageIdx) {
     ctx.beginPath(); ctx.arc(240, 100, 180, 0, Math.PI * 2); ctx.fill();
 }
 
-// 警察官スプライト描画 (x: 体の左端あたり, groundY: 足元の地面の高さ)
-function drawPoliceSprite(x, groundY, tick) {
+// 歩行スプライト描画 (frames: 2コマの画像 / x: 体の左端あたり / groundY: 足元の地面の高さ)
+function drawWalkSprite(frames, x, groundY, tick) {
     // 歩行中は2コマを交互に、立ち止まり中は1コマ目で固定
     const walking = isPlayerWalking();
     const frameIdx = walking ? Math.floor(tick / WALK_FRAME_TICKS) % 2 : 0;
-    const img = POLICE_WALK_FRAMES[frameIdx];
+    const img = frames[frameIdx];
     if (!img.complete) return;
     const size = 32 * SPRITE_SCALE;
 
