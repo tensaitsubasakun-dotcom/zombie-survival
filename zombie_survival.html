@@ -1249,7 +1249,7 @@ function drawPixelPlayer(x, y, tick) {
 }
 
 // ゾンビのドット絵 (32×32、左向き。足元は30行目、体の中心は17列目付近)
-const ZOMBIE_SPRITE = (() => { const img = new Image(); img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABuklEQVR42uVWvUrDUBg9KQVJAgEp1DVdolKKyeQLuIuTPoKDD5G9oyI+QrdSXIWiUMQpgVLUuyS6KQ2WoikuxqHcctNGzU1yK+I3hZPknu+e7xf47yZl/VE3zCgJ94nLdWY5K/GBXZthFycvzBfT92kdkXjJKbFVWwcAON59ghPAcDhK5UQpawgoMXVk52g10znlPAlEnchjXAr4xJVatgcAaNke6PO8pZU/Vwh63eYCliUMmZPwKxs4AfqdsXgFKNnACWJY3aqIbURJDYhVpWV7XM2Iuwp84kq6YUa9bhPhexXKyjOOL09/pxU3drUYxhP7QnJAITLqVgV1qwKFyN/OiEIV0A0zOtxrwLl7juHWRhUAcNbui5kFLPlPltaJkgjypeUAvWlsPsyFpfAyHG29xmp+6Qqw3Y+35HIr4BNXQmdaZufNq0Ty0JhMVWoLUsAnrkRvrhtmtL25thAauqQIX0hmo/njAXAAhYSAwbeo5GrF9Pas3dw+ceVHrjJ8DEoxUgBIckpoH2Cttq8svxGx0g+cgNuJcpEKDK9VeCQUvxGN3yYxTFNlsJimyqmTMJMCmiqnwv6EfQJME76h65vVxAAAAABJRU5ErkJggg=='; return img; })();
+const ZOMBIE_SPRITE = (() => { const img = new Image(); img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABu0lEQVR42uVWMUvDQBh9CQVJAgEpVNzSJSqlmEwOru7ipD/BwR/RvaMi/oRupbgKolDEKYFS1FsS3VoaLEVTXBqHcnKpUXNJryK+JfAlue/d+77v3QH/HVLWHw3TipLiPnG51ixkTXxQK3/ELk6emS+m79MSkXiT08R2eQ0A4HgPCSSAwWCYioSctQQ0MSWyc7ScaZ1CngaiJPKASwGfuFKj5gEA6DMJaeXPVQK2CSmylEHO2oRfYXV7Io7ALLpOgK4TxGIVuyjWiJIMiFWlUfO4zIh7CnziSoZpRe3LOsK3EtSlPo6vTn/Hiqu7eizWaY24rThXD6hEQcUuomIXoRLl2zNirgoYphUd7lXh3PdjcXu9BAA4a3bEnAVs8p+QloQsIvnCeoDuNHY+zJRl7mM43HyJzfzCFWDdj3fkcivgE1dCazpm5/XrxOShOZ6q1BSkgE9cie7cMK1oa2PlU2noJUX4hYSiPXkEHEAlIWDyXVRyWTHdPYvbux5Xf+Qaw6dAjiUFgCRSQn2ARXlfXbwRsdJ3nYCbRGGeCgxuNHgkFH8jGr2OYzFdU8DGdE1J3YSZFNA1JVXsT+AdEC21RXb9628AAAAASUVORK5CYII='; return img; })();
 
 // ゾンビ描画（x: 体の左端あたり / y-8 が足元の高さ。タイタン・ボスは drawScaledZombie で拡大）
 function drawPixelZombie(x, y, tick) {
