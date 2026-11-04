@@ -431,7 +431,7 @@ const STAGES = [
     { name: '空港', desc: '軍事用品。金属探知機リスク。', encounter: 0.35, item: 0.35, happening: 0.15, event: 0.15 },
     { name: '館', desc: 'ブービートラップ多数。高価値品。', encounter: 0.40, item: 0.30, happening: 0.20, event: 0.15 },
     { name: '刑務所', desc: '最悪の死地。重装甲ゾンビ。', encounter: 0.65, item: 0.25, happening: 0.05, event: 0.20 },
-    { name: '脱出地点', desc: '最終防衛線。全力を尽くせ！', encounter: 0.70, item: 0.20, happening: 0.00, event: 0.10 }
+    { name: '脱出地点', desc: '最終防衛線。最後のフェーズで極変異体「ホルゼイン」が現れる。', encounter: 0.30, item: 0.70, happening: 0.00, event: 0.00 }
 ];
 
 // ゾンビデータベース
@@ -441,8 +441,22 @@ const ZOMBIES = {
     runner: { name: 'ランナー', dmg: 10, evaPenalty: 0.20, infPenalty: 0, icon: '🏃‍♂️', hp: 1 },
     spreader: { name: 'スプレッダー', dmg: 5, evaPenalty: 0, infPenalty: 10, icon: '🤢', hp: 1, deathGas: 40 },
     brute: { name: 'ブルート', dmg: 10, evaPenalty: 0, infPenalty: 0, icon: '💪', hp: 3 },
-    horde: { name: 'ゾンビの大群', dmg: 15, evaPenalty: 0.50, infPenalty: 0, icon: '🧟🧟', hp: 1, immuneTo: ['handgun', 'shotgun', 'fist'] },
-    mutant: { name: 'ミュータント', dmg: 40, evaPenalty: 0.10, infPenalty: 15, icon: '👽', hp: 3 }
+    horde: { name: 'ゾンビの大群', dmg: 15, evaPenalty: 0.10, infPenalty: 0, icon: '🧟🧟', hp: 1, immuneTo: ['handgun', 'shotgun', 'fist'] },
+    mutant: { name: 'ミュータント', dmg: 40, evaPenalty: 0.10, infPenalty: 15, icon: '👽', hp: 3 },
+    // 以下は特定のハプニング・イベントでのみ出現
+    riot: { name: 'ゾンビ化した機動隊', dmg: 10, evaPenalty: 0, infPenalty: 0, icon: '🛡️', hp: 3, eventOnly: true },
+    titan: { name: 'タイタン', dmg: 80, evaPenalty: 0.50, infPenalty: 0, icon: '🗿', hp: 4, eventOnly: true, big: true }
+};
+
+// ラスボス：極変異体ホルゼイン（ボス戦専用。武器ごとのダメージが通常と異なる）
+const BOSS = {
+    name: '極変異体ホルゼイン', icon: '👹', hp: 50,
+    weaponDamage: { handgun: 4, shotgun: 8, rocket_launcher: 50 },
+    attacks: [
+        { id: 'rush', name: '突進', icon: '💢', desc: '30ダメージ' },
+        { id: 'explode', name: '爆発', icon: '☣️', desc: '汚染度+30' },
+        { id: 'scream', name: '叫ぶ', icon: '📢', desc: '空腹度-30' }
+    ]
 };
 
 // 武器データ: power はハンドガン何発分のダメージか
@@ -454,9 +468,9 @@ const WEAPONS = {
 
 // マスターアイテムDB
 const ITEM_DB = {
-    'handgun': { id: 'handgun', name: 'ハンドガン', w: 2, h: 1, type: 'weapon', color: 'bg-blue-800', border: 'border-blue-500', icon: '🔫', desc: '標準的な拳銃。戦闘時、弾薬を1発消費して確実に撃破する。' },
-    'shotgun': { id: 'shotgun', name: 'ショットガン', w: 3, h: 1, type: 'weapon', color: 'bg-red-950', border: 'border-red-600', icon: '💥', desc: '散弾銃。弾薬1発でハンドガン3発分の威力。ブルートやミュータントも一撃。大群には効かない。イベントでのみ入手。', eventOnly: true },
-    'rocket_launcher': { id: 'rocket_launcher', name: 'ロケットランチャー', w: 3, h: 1, type: 'weapon', color: 'bg-orange-950', border: 'border-orange-500', icon: '🚀', desc: 'どんな敵も一撃で吹き飛ばす。ゾンビの大群を倒せる唯一の武器。撃つと使い切り(弾薬不要)。イベントでのみ入手。', weight: 0.3, eventOnly: true },
+    'handgun': { id: 'handgun', name: 'ハンドガン', w: 2, h: 1, type: 'weapon', color: 'bg-blue-800', border: 'border-blue-500', icon: '🔫', desc: '標準的な拳銃。戦闘時、弾薬を1発消費して確実に撃破する。', metal: true },
+    'shotgun': { id: 'shotgun', name: 'ショットガン', w: 3, h: 1, type: 'weapon', color: 'bg-red-950', border: 'border-red-600', icon: '💥', desc: '散弾銃。弾薬1発でハンドガン3発分の威力。ブルートやミュータントも一撃。大群には効かない。イベントでのみ入手。', eventOnly: true, metal: true },
+    'rocket_launcher': { id: 'rocket_launcher', name: 'ロケットランチャー', w: 2, h: 3, type: 'weapon', color: 'bg-orange-950', border: 'border-orange-500', icon: '🚀', desc: 'どんな敵も一撃で吹き飛ばす。ゾンビの大群を倒せる唯一の武器。撃つと使い切り(弾薬不要)。イベントでのみ入手。', weight: 0.3, eventOnly: true, metal: true },
     'ammo': { id: 'ammo', name: '弾薬(2~3発)', w: 1, h: 1, type: 'ammo', color: 'bg-yellow-900', border: 'border-yellow-500', icon: '🟡', count: 3, maxCount: 12, stackable: true, desc: '銃の射撃に必要な弾丸。拾うと2~3発手に入る。1マスに12発までスタック可能。' },
     'bandage': { id: 'bandage', name: '包帯', w: 2, h: 1, type: 'heal', color: 'bg-emerald-900', border: 'border-emerald-500', icon: '🩹', desc: '使用するとHPを40回復する。' },
     'medkit': { id: 'medkit', name: '救急箱', w: 2, h: 2, type: 'heal', color: 'bg-emerald-800', border: 'border-emerald-400', icon: '🧰', desc: '重傷を治療する。使用するとHPを80回復する。' },
@@ -468,20 +482,25 @@ const ITEM_DB = {
     'flare': { id: 'flare', name: '発煙筒', w: 1, h: 1, type: 'utility', color: 'bg-orange-800', border: 'border-orange-500', icon: '🏮', desc: '戦闘時に使用すると、100%安全に確定逃走できる。' },
     'stethoscope': { id: 'stethoscope', name: '聴診器', w: 1, h: 1, type: 'utility', color: 'bg-cyan-950', border: 'border-cyan-500', icon: '🩺', desc: '固く閉ざされた部屋の扉に当てて、中に罠があるか偵察できる。使うと壊れる(1回限り)。' },
     'camera': { id: 'camera', name: '小型カメラ', w: 1, h: 2, type: 'utility', color: 'bg-slate-800', border: 'border-slate-500', icon: '📷', desc: 'ハプニングの中身を透視する高機能偵察ツール。' },
-    'crowbar': { id: 'crowbar', name: 'バール', w: 1, h: 3, type: 'utility', color: 'bg-indigo-950', border: 'border-indigo-500', icon: '🔧', desc: '鍵のかかった金庫や扉を確定でこじ開けるツール。かさばる。' },
+    'crowbar': { id: 'crowbar', name: 'バール', w: 1, h: 3, type: 'utility', color: 'bg-indigo-950', border: 'border-indigo-500', icon: '🔧', desc: '鍵のかかった金庫や扉を確定でこじ開けるツール。かさばる。', metal: true },
     'gas_mask': { id: 'gas_mask', name: 'ガスマスク', w: 2, h: 2, type: 'special', color: 'bg-purple-950', border: 'border-purple-400', icon: '🎭', desc: 'カバンに入っている間、有毒ガスや病院での汚染上昇を無効化する。' },
-    'car_battery': { id: 'car_battery', name: '車のバッテリー', w: 2, h: 2, type: 'special', color: 'bg-slate-900', border: 'border-yellow-600', icon: '🔋', desc: '重く逃走率が-10%下がる重荷。後半の通信機イベントで超有用化。' }
+    'bear_trap': { id: 'bear_trap', name: 'トラバサミ', w: 2, h: 1, type: 'utility', color: 'bg-zinc-800', border: 'border-zinc-400', icon: '🪤', desc: '「使用する」でその場に設置。そのステージにいる間、次のゾンビ遭遇で一度だけ回避率100%。ボス戦では攻撃をキャンセルできる。', noRandomDrop: true, metal: true },
+    'extinguisher': { id: 'extinguisher', name: '消火器', w: 2, h: 1, type: 'utility', color: 'bg-red-800', border: 'border-red-400', icon: '🧯', desc: '戦闘中に使うとゾンビを100%回避できる。3回まで使用可能。売却不可・非売品。', uses: 3, noRandomDrop: true, metal: true },
+    'running_shoes': { id: 'running_shoes', name: 'ランニングシューズ', w: 1, h: 2, type: 'utility', color: 'bg-sky-800', border: 'border-sky-400', icon: '👟', desc: '所持しているだけで回避率が10%上昇する。', noRandomDrop: true },
+    'guard_key': { id: 'guard_key', name: '看守の鍵', w: 1, h: 1, type: 'utility', color: 'bg-amber-800', border: 'border-amber-400', icon: '🗝️', desc: '刑務所の「独房のロックダウン」発生時に自動で使用され、閉じ込めを回避できる。', noRandomDrop: true, metal: true },
+    'car_battery': { id: 'car_battery', name: '車のバッテリー', w: 2, h: 2, type: 'special', color: 'bg-slate-900', border: 'border-yellow-600', icon: '🔋', desc: '重く逃走率が-10%下がる重荷。後半の通信機イベントで超有用化。', metal: true }
 };
 
 // 売却相場 (G)。弾薬は1発あたりの価格。ショップの販売価格はこの2倍
 const SELL_PRICES = {
     handgun: 10, ammo: 2, flare: 5, bandage: 5, medkit: 10, stethoscope: 3,
     car_battery: 10, crowbar: 7, canned_food: 3, dog_food: 2, flashlight: 6,
-    camera: 7, raw_meat: 4, gas_mask: 10
+    camera: 7, raw_meat: 4, gas_mask: 10,
+    shotgun: 15, rocket_launcher: 20, bear_trap: 10, running_shoes: 10
 };
 const SHOP_AMMO_PACK = 3;          // ショップの弾薬は3発セットで販売
 const KILL_REWARD = 3;             // ゾンビ1体撃破の報酬 (G)
-const BACKPACK_PRICE = 20;         // 拡張バックパックの価格 (G)
+const BACKPACK_PRICE = 30;         // 拡張バックパックの価格 (G)
 const SHOP_SLOTS = 3;              // 店頭に並ぶランダム商品の数
 const SHELTER_HP_HEAL = 20;        // セーフルーム到着時のHP回復量
 
@@ -530,6 +549,16 @@ let state = {
     shopStock: [],          // [{ id, sold }]
     backpackBought: false,  // 拡張バックパックは1ゲーム1回
     shelterView: 'stash',   // 拠点で表示中のパネル: 'stash' | 'shop'
+
+    // ステージ別イベント・ハプニング
+    stageEvents: null,          // { stageIdx, active: [イベントID] } そのステージ中だけ有効
+    onceEvents: {},             // 1プレイ1回のイベントの発生済みフラグ
+    stallPhases: 0,             // 閉じ込め等で延長される残りフェーズ
+    forcedEncounter: null,      // 次のフェーズで確定する遭遇 { type, reason }
+    nextEncounterBonus: 0,      // 次のフェーズだけの遭遇率上乗せ
+    trapArmedStage: null,       // トラバサミを設置したステージ
+    choice: null,               // 選択肢ハプニングの内容
+    boss: null,                 // ボス戦の状態
     currentEvasion: 0.5,
     currentEncounter: 0.2
 };
@@ -610,18 +639,23 @@ function updateCalculatedStats() {
     if (state.selectedClass && state.selectedClass.id === 'hunter') baseEva += 0.25;
     if (state.inventory.some(i => i.id === 'car_battery')) baseEva -= 0.10;
     if (state.inventory.some(i => i.id === 'flashlight')) baseEva += 0.10;
+    if (state.inventory.some(i => i.id === 'running_shoes')) baseEva += 0.10;
+    const mods = getStageModifiers();
+    baseEva += mods.eva;
     state.currentEvasion = Math.max(0, Math.min(1, baseEva));
 
     // 遭遇率の計算
     const stageIdx = Math.min(Math.floor((state.phase - 1) / 10), 9);
     let baseEnc = STAGES[stageIdx] ? STAGES[stageIdx].encounter : 0.2;
     if (state.inventory.some(i => i.id === 'raw_meat')) baseEnc += 0.15;
+    baseEnc += mods.enc + (state.nextEncounterBonus || 0);
     state.currentEncounter = Math.max(0, Math.min(1, baseEnc));
 }
 
 function updateHUD() {
     clampStats();
     updateCalculatedStats();
+    updateEnvironmentText();
 
     const stageIdx = Math.min(Math.floor((state.phase - 1) / 10), 9);
     const stage = STAGES[stageIdx];
@@ -759,7 +793,8 @@ function createItemDOM(item, cellSize, locationType) {
         selectItem(item.instanceId);
     };
 
-    const countBadge = item.count ? `<span class="absolute bottom-0.5 right-1 bg-black/80 px-1 rounded text-[10px] text-yellow-300 font-bold">${item.count}</span>` : '';
+    const badgeValue = item.count ?? item.uses;
+    const countBadge = badgeValue ? `<span class="absolute bottom-0.5 right-1 bg-black/80 px-1 rounded text-[10px] text-yellow-300 font-bold">${badgeValue}</span>` : '';
     
     el.innerHTML = `
         <span class="text-base md:text-xl pointer-events-none">${item.icon}</span>
@@ -859,7 +894,8 @@ function selectItem(instanceId, rerender = true) {
         descEl.textContent = item.desc;
 
         btnRotate.disabled = false;
-        btnUse.disabled = !(item.type === 'heal' || item.type === 'food');
+        btnUse.disabled = !(item.type === 'heal' || item.type === 'food' || item.id === 'bear_trap');
+        btnUse.textContent = item.id === 'bear_trap' ? '🪤 設置する' : '✨ 使用する';
         btnDrop.disabled = false;
     } else {
         titleEl.textContent = 'アイテムを選択してください';
@@ -867,6 +903,7 @@ function selectItem(instanceId, rerender = true) {
         descEl.textContent = 'マス目のアイテムをクリックまたはドラッグして選択します。';
         btnRotate.disabled = true;
         btnUse.disabled = true;
+        btnUse.textContent = '✨ 使用する';
         btnDrop.disabled = true;
     }
 
@@ -918,7 +955,9 @@ function useSelectedItem() {
     if (idx === -1) return;
 
     const item = state.inventory[idx];
-    if (item.id === 'bandage') {
+    if (item.id === 'bear_trap') {
+        if (!installBearTrap()) return;
+    } else if (item.id === 'bandage') {
         state.hp = Math.min(state.maxHp, state.hp + 40);
         addLog('包帯を使用。HPが40回復した。', 'success');
         AudioFX.play('heal');
@@ -1041,8 +1080,12 @@ function renderCanvas() {
     }
 
     // 3. 状態に応じたモンスター・エフェクト描画
-    if (state.eventStatus === 'ENCOUNTER') {
+    if (state.eventStatus === 'ENCOUNTER' && state.currentEnemy && state.currentEnemy.big) {
+        drawScaledZombie(330, 240, 2, animTick, null); // タイタンは2倍の大きさ
+    } else if (state.eventStatus === 'ENCOUNTER') {
         drawPixelZombie(320, 248, animTick); // 足元が地面(y=240)に来る位置
+    } else if (state.eventStatus === 'BOSS') {
+        drawScaledZombie(330, 240, 3, animTick, '#7e22ce'); // ホルゼインは3倍・紫色
     } else if (state.eventStatus === 'SHELTER') {
         drawShelterNpc(340, 200);
     }
@@ -1137,6 +1180,19 @@ function drawPixelZombie(x, y, tick) {
     ctx.fillRect(zX - 10, y - 24 + bob, 12, 5);
 }
 
+// 大型ゾンビ（タイタン・ボス）。groundX/groundY は足元の位置
+function drawScaledZombie(groundX, groundY, scale, tick, tint) {
+    ctx.save();
+    ctx.translate(groundX, groundY);
+    ctx.scale(scale, scale);
+    if (tint) {
+        ctx.shadowColor = tint;
+        ctx.shadowBlur = 12;
+    }
+    drawPixelZombie(-10, 8, tick);
+    ctx.restore();
+}
+
 function drawShelterNpc(x, y) {
     ctx.fillStyle = '#06b6d4';
     ctx.fillRect(x, y - 30, 18, 22);
@@ -1208,6 +1264,14 @@ function startGame() {
     state.gold = 0;
     state.shopStock = [];
     state.backpackBought = false;
+    state.stageEvents = null;
+    state.onceEvents = {};
+    state.stallPhases = 0;
+    state.forcedEncounter = null;
+    state.nextEncounterBonus = 0;
+    state.trapArmedStage = null;
+    state.choice = null;
+    state.boss = null;
 
     // 初期アイテム付与
     cls.items.forEach(itemId => autoAddItemToInventory(itemId));
@@ -1242,7 +1306,7 @@ function nextPhaseTurn() {
         return;
     }
 
-    // 病院エリア特性：毎ターン汚染上昇
+    // 環境による毎フェーズの汚染（病院の基本汚染はガスマスクで防げる）
     const stageIdx = Math.min(Math.floor((state.phase - 1) / 10), 9);
     const stage = STAGES[stageIdx];
     if (stage.infectPerTurn) {
@@ -1254,23 +1318,52 @@ function nextPhaseTurn() {
             addLog('【ガスマスク】 空気の汚染を防御！', 'success');
         }
     }
+    const envInfect = getStageModifiers().infect;
+    if (envInfect > 0) {
+        state.infection += envInfect;
+        addLog(`【汚染環境】 イベントの影響で汚染度が+${envInfect}%上昇。`, 'danger');
+    }
+    if (state.infection >= 100) { checkGameOver(); return; }
 
     updateCalculatedStats();
+    state.nextEncounterBonus = 0; // 「次のフェーズだけ」の補正は上の計算に含めたので、ここで使い切る
+
+    // 最終フェーズ：ラスボス「ホルゼイン」（イベント発生率100%）
+    if (state.phase === 100) {
+        triggerBoss();
+        updateHUD();
+        renderActionButtons();
+        checkGameOver();
+        return;
+    }
+
+    // 前のフェーズのハプニングで確定した遭遇（防犯アラーム・金属探知機・タイタン）
+    if (state.forcedEncounter) {
+        const f = state.forcedEncounter;
+        state.forcedEncounter = null;
+        if (f.type !== 'titan' || f.stageIdx === stageIdx) {
+            triggerEncounter(f.type, f.reason);
+            updateHUD();
+            renderActionButtons();
+            checkGameOver();
+            return;
+        }
+    }
     
     // 事象の確率抽選 (1.アイテム, 2.遭遇, 3.ハプニング, 4.イベント, 5.何も起こらない)
     const roll = Math.random();
+    const encRate = Math.min(1, state.currentEncounter);
     
-    if (roll < state.currentEncounter) {
+    if (roll < encRate) {
         // 遭遇
         triggerEncounter();
-    } else if (roll < state.currentEncounter + stage.item) {
+    } else if (roll < encRate + stage.item) {
         // アイテム発見
         rollFoundItem();
-    } else if (roll < state.currentEncounter + stage.item + stage.happening) {
-        // ハプニング
-        // ハプニング枠のうち35%は金庫、残りは固く閉ざされた部屋
-        if (Math.random() < SAFE_EVENT_RATE) triggerSafe(); else triggerHappening();
-    } else if (roll < state.currentEncounter + stage.item + stage.happening + stage.event) {
+    } else if (roll < encRate + stage.item + stage.happening) {
+        // ハプニング（共通の「扉の捜索」・金庫と、ステージ固有のハプニングから抽選）
+        triggerStageHappening();
+    } else if (roll < encRate + stage.item + stage.happening + stage.event) {
         // イベント
         triggerAreaEvent();
     } else {
@@ -1286,6 +1379,13 @@ function nextPhaseTurn() {
 }
 
 function advancePhaseCount() {
+    // 閉じ込め（シャッター閉鎖・ロックダウン）中はフェーズ番号が進まない
+    if (state.stallPhases > 0) {
+        state.stallPhases--;
+        addLog(`🔒 閉じ込められている…このフェーズはカウントされない (残り${state.stallPhases}フェーズ)`, 'warning');
+        state.eventStatus = 'EXPLORE';
+        return;
+    }
     state.phase++;
 
     // 100フェーズ突破はクリア（拠点には入らない。判定は checkGameOver で行う）
@@ -1299,22 +1399,37 @@ function advancePhaseCount() {
     }
 }
 
-function triggerEncounter() {
+// forcedType: 出現する敵を固定（ハプニング・イベント用） / reason: ログの前置き
+function triggerEncounter(forcedType = null, reason = '') {
     state.eventStatus = 'ENCOUNTER';
-    const specialChance = (state.phase / 100) * 0.60;
-    
-    if (Math.random() < specialChance) {
-        const specials = ['runner', 'spreader', 'brute', 'horde', 'mutant'];
-        const type = specials[Math.floor(Math.random() * specials.length)];
-        state.currentEnemy = { ...ZOMBIES[type], type };
-    } else {
-        state.currentEnemy = { ...ZOMBIES['normal'], type: 'normal' };
+    const mods = getStageModifiers();
+    let type = forcedType;
+    if (!type) {
+        const specialChance = (state.phase / 100) * 0.60 + mods.specialBonus;
+        if (mods.runnerRate && Math.random() < mods.runnerRate) {
+            type = 'runner'; // 空港「特定の変異体の増殖」
+        } else if (Math.random() < specialChance) {
+            // 特殊ゾンビ5種から抽選。大群の確率はバリケード崩壊イベントで hordeMult 倍になる
+            const hordeChance = Math.min(1, 0.2 * mods.hordeMult);
+            if (Math.random() < hordeChance) {
+                type = 'horde';
+            } else {
+                const others = ['runner', 'spreader', 'brute', 'mutant'];
+                type = others[Math.floor(Math.random() * others.length)];
+            }
+        } else {
+            type = 'normal';
+        }
     }
+    state.currentEnemy = { ...ZOMBIES[type], type };
     state.currentEnemy.maxHp = state.currentEnemy.hp;
     
     const e = state.currentEnemy;
-    const hint = e.immuneTo ? '(銃が効かない！ロケットランチャー以外では倒せない)' : e.hp > 1 ? `(頑丈：ハンドガン${e.hp}発 / ショットガン1発)` : '';
-    addLog(`【フェーズ ${state.phase}】 ${e.icon} ${e.name}と遭遇！ ${hint}`, 'danger');
+    const hint = e.immuneTo ? '(銃が効かない！ロケットランチャー以外では倒せない)'
+        : e.hp > 1 ? `(頑丈：ハンドガン${e.hp}発 / ショットガン${Math.ceil(e.hp / WEAPONS.shotgun.power)}発)` : '';
+    const prefix = reason ? `${reason} ` : `【フェーズ ${state.phase}】 `;
+    addLog(`${prefix}${e.icon} ${e.name}と遭遇！ ${hint}`, 'danger');
+    if (isTrapArmed()) addLog('🪤 設置したトラバサミがある！今なら確実に逃げられる。', 'success');
     AudioFX.play('alarm');
 }
 
@@ -1393,10 +1508,21 @@ function finishFightTurn() {
 }
 
 // 逃走処理
-function executeFlee() {
+function getFleeChance() {
+    if (isTrapArmed()) return 1; // 設置したトラバサミで一度だけ確実に逃げられる
     const enemy = state.currentEnemy || ZOMBIES['normal'];
-    let fleeChance = state.currentEvasion - enemy.evaPenalty;
-    fleeChance = Math.max(0.1, fleeChance); // 最低10%の逃走率は保証
+    return Math.max(0.1, state.currentEvasion - enemy.evaPenalty); // 最低10%の逃走率は保証
+}
+
+function executeFlee() {
+    if (state.eventStatus !== 'ENCOUNTER') return;
+    const enemy = state.currentEnemy || ZOMBIES['normal'];
+    const usedTrap = isTrapArmed();
+    const fleeChance = getFleeChance();
+    if (usedTrap) {
+        state.trapArmedStage = null;
+        addLog(`🪤 ${enemy.name}がトラバサミに足を取られた！`, 'success');
+    }
     
     state.hunger -= 5; // 逃走による追加疲労
     const roll = Math.random();
@@ -1442,7 +1568,7 @@ function pickRandomItemId(stage, allowEventOnly = false) {
         return FOOD_IDS[Math.floor(Math.random() * FOOD_IDS.length)];
     }
     // weight があるアイテムはその比率で出現（未指定は1）
-    const keys = Object.keys(ITEM_DB).filter(k => allowEventOnly || !ITEM_DB[k].eventOnly);
+    const keys = Object.keys(ITEM_DB).filter(k => !ITEM_DB[k].noRandomDrop && (allowEventOnly || !ITEM_DB[k].eventOnly));
     const total = keys.reduce((sum, k) => sum + (ITEM_DB[k].weight ?? 1), 0);
     let r = Math.random() * total;
     for (const k of keys) {
@@ -1476,7 +1602,7 @@ function acceptFoundItem(index) {
     if (!state.foundItems || state.foundItems.length <= index) return;
     const item = state.foundItems[index];
 
-    const success = autoAddItemToInventory(item.id);
+    const success = autoAddItemToInventory(item.id, item.giveCount ?? null);
     if (success) {
         addLog(`「${item.name}」をカバンに収納した。`, 'success');
         AudioFX.play('item');
@@ -1611,34 +1737,598 @@ function resolveSafe(open) {
     checkGameOver();
 }
 
-// エリアイベント
+// ==========================================
+// 6.5 ステージ別イベント・ハプニング・ボス戦
+// ==========================================
+// (修正案 Issue #1「各ステージの特有のイベント・ハプニングの案」)
+
+function curStageIdx() {
+    return Math.min(Math.floor((state.phase - 1) / 10), 9);
+}
+function hasItem(id) {
+    return state.inventory.some(i => i.id === id);
+}
+// 指定アイテムを1つカバンから取り除く（成功したら true）
+function removeOneItem(id) {
+    const idx = state.inventory.findIndex(i => i.id === id);
+    if (idx === -1) return false;
+    state.inventory.splice(idx, 1);
+    if (state.selectedInstanceId && !state.inventory.some(i => i.instanceId === state.selectedInstanceId)) selectItem(null, false);
+    return true;
+}
+// バールは使うと壊れる
+function useCrowbar() {
+    return removeOneItem('crowbar');
+}
+
+// ---------- ステージイベント（そのステージにいる間ずっと効く） ----------
+// eva: 回避率の増減 / enc: 遭遇率の増減 / noFlashlight: 懐中電灯で無効 / infect: 毎フェーズの汚染
+// gasMaskBlocks: ガスマスクで無効 / hordeMult: 大群の出現しやすさ倍率 / specialBonus: 特殊ゾンビ出現率の上乗せ
+// runnerRate: 遭遇がランナーになる確率 / stall: 滞在フェーズ延長 / oncePerGame: 1プレイ1回 / repeatable: 何度でも
+const STAGE_EVENTS = {
+    0: [ // 農場
+        { id: 'mud', name: '泥濘（ぬかるみ）', icon: '🟫', text: '足元がぬかるみ、農場での回避率が10%ダウン。', eva: -0.10 },
+        { id: 'windmill', name: '風車の騒音', icon: '🌀', text: '軋む風車の音にゾンビが集まる。農場での遭遇率が10%アップ。', enc: 0.10 }
+    ],
+    1: [ // 住宅街
+        { id: 'car_alarm', name: 'カーアラーム', icon: '🚨', text: '放置車のアラームが鳴り響く。住宅街での遭遇率が10%アップ。', enc: 0.10 },
+        { id: 'downpour', name: '土砂降り', icon: '🌧️', text: '天候が土砂降りに。住宅街にいる間、回避率が10%ダウン。', eva: -0.10 }
+    ],
+    2: [ // 学校
+        { id: 'barricade', name: '机バリケード崩壊', icon: '🪑', text: 'バリケードが崩れた！ゾンビの大群が出現する確率が50%アップ。', hordeMult: 1.5 },
+        { id: 'blackout', name: '停電', icon: '🌑', text: '校内が停電。回避率が20%ダウン（懐中電灯があれば無効）。', eva: -0.20, noFlashlight: true },
+        { id: 'pa', name: '放送設備の誤作動', icon: '📢', text: '校内放送が勝手に流れ出した。学校での遭遇率が10%アップ。', enc: 0.10 }
+    ],
+    3: [ // 警察署
+        { id: 'blackout', name: '停電', icon: '🌑', text: '署内が停電。回避率が25%ダウン（懐中電灯があれば無効）。', eva: -0.25, noFlashlight: true },
+        { id: 'car_alarm', name: 'カーアラーム', icon: '🚨', text: 'パトカーのアラームが鳴り響く。警察署での遭遇率が10%アップ。', enc: 0.10 }
+    ],
+    4: [ // 病院
+        { id: 'leak', name: '廃棄物の漏洩', icon: '🛢️', text: '医療廃棄物が漏れ出した！病院では毎フェーズ汚染度+20（ガスマスクがあれば無効）。', infect: 20, gasMaskBlocks: true },
+        { id: 'mutation', name: '変異体の発生', icon: '🧬', text: '院内で変異が進んでいる。特殊ゾンビの遭遇率が10%アップ。', specialBonus: 0.10 },
+        { id: 'blackout', name: '停電', icon: '🌑', text: '病院が停電。回避率が15%ダウン（懐中電灯があれば無効）。', eva: -0.15, noFlashlight: true }
+    ],
+    5: [ // モール
+        { id: 'mall_shutter', name: 'シャッター強制閉鎖', icon: '🚧', text: '防犯システムが暴走しシャッターが閉鎖！モールでの滞在が2フェーズ延長される。', stall: 2, oncePerGame: true },
+        { id: 'barricade', name: 'バリケードの崩壊', icon: '🧱', text: 'バリケードが崩れた！ゾンビの大群の出現率が上昇。', hordeMult: 1.5 },
+        { id: 'blackout', name: '停電', icon: '🌑', text: 'モールが停電。回避率が20%ダウン（懐中電灯があれば無効）。', eva: -0.20, noFlashlight: true }
+    ],
+    6: [ // 空港
+        { id: 'gust', name: '割れた窓からの突風', icon: '🌬️', text: '強風が吹き荒れる。逃走確率が30%ダウン。', eva: -0.30 },
+        { id: 'runner_surge', name: '特定の変異体の増殖', icon: '🏃', text: 'ランナーが増殖している！遭遇するゾンビの80%がランナーになる。', runnerRate: 0.80 },
+        { id: 'escape_route', name: '避難経路発見', icon: '🧭', text: '避難経路の案内を見つけた。回避率が10%アップ。', eva: 0.10 }
+    ],
+    7: [ // 館
+        { id: 'titan', name: '超変異体の発生', icon: '🗿', text: '館の奥から地響きが…！次のフェーズで特殊ゾンビ「タイタン」が確定で出現する。', titan: true, oncePerGame: true }
+    ],
+    8: [ // 刑務所
+        { id: 'lockdown', name: '独房のロックダウン', icon: '🔒', text: '自動ドアが閉鎖された！刑務所での滞在が2フェーズ延長される。', stall: 2, repeatable: true, keyAvoids: true },
+        { id: 'contaminated', name: '汚染された監獄', icon: '☣️', text: '監獄全体が汚染されている！刑務所にいる限り毎フェーズ汚染度+15。', infect: 15 }
+    ]
+};
+
+// 現在のステージで発生中のイベント（ステージが変わると自動でリセット）
+function getActiveStageEvents() {
+    const idx = curStageIdx();
+    if (!state.stageEvents || state.stageEvents.stageIdx !== idx) {
+        state.stageEvents = { stageIdx: idx, active: [] };
+    }
+    const defs = STAGE_EVENTS[idx] || [];
+    return state.stageEvents.active.map(id => defs.find(d => d.id === id)).filter(Boolean);
+}
+
+// 回避率・遭遇率などへのステージイベント補正
+function getStageModifiers() {
+    const mods = { eva: 0, enc: 0, infect: 0, hordeMult: 1, specialBonus: 0, runnerRate: 0, notes: [] };
+    const hasFlashlight = hasItem('flashlight');
+    const hasGasMask = hasItem('gas_mask');
+    getActiveStageEvents().forEach(ev => {
+        let note = ev.name;
+        if (ev.eva) {
+            if (ev.noFlashlight && hasFlashlight) note += '(懐中電灯で無効)';
+            else mods.eva += ev.eva;
+        }
+        if (ev.enc) mods.enc += ev.enc;
+        if (ev.infect) {
+            if (ev.gasMaskBlocks && hasGasMask) note += '(ガスマスクで無効)';
+            else mods.infect += ev.infect;
+        }
+        if (ev.hordeMult) mods.hordeMult *= ev.hordeMult;
+        if (ev.specialBonus) mods.specialBonus += ev.specialBonus;
+        if (ev.runnerRate) mods.runnerRate = Math.max(mods.runnerRate, ev.runnerRate);
+        mods.notes.push(`${ev.icon}${note}`);
+    });
+    return mods;
+}
+
 const WEAPON_CACHE_RATE = 0.25;   // エリアイベントが「武器ケース」になる確率
 const ROCKET_IN_CACHE_RATE = 0.25; // 武器ケースの中身がロケットランチャーになる確率（残りはショットガン）
 
 function triggerAreaEvent() {
-    // 一定確率で、イベント限定武器が手に入る「武器ケース」
-    if (Math.random() < WEAPON_CACHE_RATE) {
+    const idx = curStageIdx();
+    getActiveStageEvents(); // ステージ切替時のリセット
+    const isLastPhaseOfStage = state.phase % 10 === 0;
+    const candidates = (STAGE_EVENTS[idx] || []).filter(ev => {
+        if (ev.repeatable) return true;
+        if (state.stageEvents.active.includes(ev.id)) return false;
+        if (ev.oncePerGame && state.onceEvents[ev.id]) return false;
+        if (ev.titan && isLastPhaseOfStage) return false; // 滞在10フェーズ目は無効
+        return true;
+    });
+
+    // 一定確率（またはステージ固有イベントが出尽くした時）は共通イベント「武器ケース」
+    if (candidates.length === 0 || Math.random() < WEAPON_CACHE_RATE) {
         const weaponId = Math.random() < ROCKET_IN_CACHE_RATE ? 'rocket_launcher' : 'shotgun';
-        const w = ITEM_DB[weaponId];
-        state.foundItems = [{ ...w }];
-        state.eventStatus = 'ITEM_FOUND';
-        addLog(`【フェーズ ${state.phase} イベント】 🧰 放棄された軍の武器ケースを発見！ 中には「${w.icon} ${w.name}」(${w.w}×${w.h})が入っている。拾う？`, 'success');
-        AudioFX.play('item');
-        return; // 拾う/拾わないを選んだ時点でフェーズが進む
+        offerItems([{ id: weaponId }], `【フェーズ ${state.phase} イベント】 🧰 放棄された軍の武器ケースを発見！`);
+        return;
     }
 
-    state.eventStatus = 'EVENT';
-    const events = [
-        '【カーアラーム】 放置された車のアラームが鳴り響く！遭遇率上昇！',
-        '【ぬかるみ】 悪天候で足場が劣悪化。逃走が困難に。',
-        '【停電】 視界が奪われ緊張が走る。'
-    ];
-    const ev = events[Math.floor(Math.random() * events.length)];
-    addLog(`【フェーズ ${state.phase} イベント】 ${ev}`, 'warning');
+    const ev = candidates[Math.floor(Math.random() * candidates.length)];
+    if (ev.oncePerGame) state.onceEvents[ev.id] = true;
+    if (!ev.repeatable && !ev.stall && !ev.titan) state.stageEvents.active.push(ev.id);
+    addLog(`【フェーズ ${state.phase} イベント】 ${ev.icon} ${ev.name}：${ev.text}`, 'warning');
     AudioFX.play('alarm');
-    advancePhaseCount();
+
+    if (ev.titan) {
+        state.forcedEncounter = { type: 'titan', stageIdx: idx, reason: '🗿 地響きと共にタイタンが姿を現した！' };
+    }
+    state.eventStatus = 'EVENT';
+    advancePhaseCount(); // イベントが起きたフェーズ自体は普通に進む
+    // 閉じ込め：この後の stall フェーズぶん、フェーズ番号が進まなくなる
+    if (ev.stall) {
+        if (ev.keyAvoids && removeOneItem('guard_key')) {
+            addLog('🗝️ 看守の鍵で扉を開け、閉じ込めを回避した！(鍵は使い切った)', 'success');
+        } else {
+            state.stallPhases += ev.stall;
+        }
+    }
+}
+
+// ---------- 汎用：アイテムを見つける / 選択肢を出す ----------
+// list: [{ id, giveCount? }]  giveCount は弾薬の発数など
+function offerItems(list, msg) {
+    state.foundItems = list.map(entry => {
+        const base = ITEM_DB[entry.id];
+        const item = { ...base };
+        if (entry.giveCount) {
+            item.giveCount = entry.giveCount;
+            if (entry.id === 'ammo') item.name = `弾薬×${entry.giveCount}`;
+        }
+        return item;
+    });
+    state.eventStatus = 'ITEM_FOUND';
+    const names = state.foundItems.map(i => `${i.icon}${i.name}`).join('、');
+    addLog(`${msg} 「${names}」を見つけた。拾う？`, 'success');
+    AudioFX.play('item');
+}
+
+// options: [{ label, cls, disabled, run }]
+function presentChoice(msg, options, logType = 'warning') {
+    state.eventStatus = 'CHOICE';
+    state.choice = { options };
+    addLog(msg, logType);
+}
+
+function chooseOption(idx) {
+    if (state.eventStatus !== 'CHOICE' || !state.choice) return;
+    const opt = state.choice.options[idx];
+    if (!opt || opt.disabled) return;
+    state.choice = null;
+    opt.run();
     updateHUD();
+    renderInventoryGrid();
     renderActionButtons();
+    checkGameOver();
+}
+
+// 選択肢の結果、何も起きずに先へ進む
+function passAlong(msg) {
+    if (msg) addLog(msg);
+    advancePhaseCount();
+}
+
+function damagePlayer(amount, msg) {
+    state.hp -= amount;
+    addLog(msg, 'danger');
+    AudioFX.play('hit');
+}
+
+// ---------- ステージハプニング ----------
+// 共通：「扉の捜索」(固く閉ざされた部屋) と 金庫 / 各ステージ固有のハプニング
+const STAGE_HAPPENINGS = {
+    0: ['farm_trap', 'corn'],
+    1: ['survivor', 'gas_explosion'],
+    2: ['shutter', 'glass', 'extinguisher'],
+    3: ['police_safe', 'riot', 'shutter'],
+    4: ['chem_explosion', 'pharmacy'],
+    5: ['alarm', 'corpse', 'shoes'],
+    6: ['metal_detector', 'baggage_gate', 'cop_corpse'],
+    7: ['hidden_door', 'booby_trap', 'armory'],
+    8: ['guard_corpse']
+};
+
+function triggerStageHappening() {
+    const idx = curStageIdx();
+    const pool = ['door', ...(idx === 3 ? [] : ['safe']), ...(STAGE_HAPPENINGS[idx] || [])];
+    const id = pool[Math.floor(Math.random() * pool.length)];
+    runHappening(id);
+}
+
+function crowbarOption(label, run) {
+    const has = hasItem('crowbar');
+    return {
+        label: has ? `🔧 ${label} (バールは壊れる)` : `🔒 ${label} (バールが必要)`,
+        cls: 'bg-amber-800 hover:bg-amber-700',
+        disabled: !has,
+        run: () => { useCrowbar(); run(); }
+    };
+}
+const leaveOption = (label = '🚶 立ち去る', msg = '関わらずに先へ進んだ。') => ({
+    label, cls: 'bg-slate-800 hover:bg-slate-700', run: () => passAlong(msg)
+});
+
+function runHappening(id) {
+    const P = `【フェーズ ${state.phase}】`;
+    switch (id) {
+        case 'door': triggerHappening(); return;
+        case 'safe': triggerSafe(); return;
+
+        // --- 農場 ---
+        case 'farm_trap':
+            damagePlayer(20, `${P} 🪤 草むらに隠れたトラップを踏んだ！ 20 ダメージ！`);
+            offerItems([{ id: 'bear_trap' }], '足元に挟まっていたのは使えそうなトラバサミだ。');
+            return;
+        case 'corn':
+            presentChoice(`${P} 🌽 トウモロコシ畑からガサガサと物音がする…`, [
+                { label: '👀 確認する', cls: 'bg-amber-800 hover:bg-amber-700', run: () => {
+                    if (Math.random() < 0.5) triggerEncounter(null, '物音の正体はゾンビだった！');
+                    else offerItems([{ id: 'canned_food' }], '🐿️ 動物が缶詰を漁っていた。逃げた後に未開封の缶詰が残っている！');
+                } },
+                leaveOption('🚶 確認しない', '物音を無視して先へ進んだ。')
+            ]);
+            return;
+
+        // --- 住宅街 ---
+        case 'survivor': {
+            const hasGun = hasItem('handgun') || hasItem('shotgun');
+            const canShoot = hasGun && getAmmoCount() > 0;
+            const reward = () => offerItems([{ id: 'canned_food' }, { id: 'antibiotics' }], '🙏 救出した生存者がお礼に物資をくれた！');
+            presentChoice(`${P} 🆘 ゾンビに襲われている生存者を発見！助ける？`, [
+                { label: canShoot ? '🔫 銃で助ける (弾薬1発を消費)' : '🔫 銃で助ける (銃と弾薬が必要)', cls: 'bg-red-800 hover:bg-red-700', disabled: !canShoot,
+                  run: () => { consumeAmmo(); AudioFX.play('shoot'); reward(); } },
+                { label: hasItem('flare') ? '🏮 発煙筒で助ける (発煙筒を消費)' : '🏮 発煙筒で助ける (発煙筒が必要)', cls: 'bg-yellow-700 hover:bg-yellow-600', disabled: !hasItem('flare'),
+                  run: () => { removeOneItem('flare'); reward(); } },
+                leaveOption('🚶 助けない', '生存者は自力で逃げ切ったようだ。何も起こらなかった。')
+            ]);
+            return;
+        }
+        case 'gas_explosion':
+            damagePlayer(30, `${P} 💥 民家でガス爆発が起きた！ 30 ダメージ！`);
+            advancePhaseCount();
+            return;
+
+        // --- 学校・警察署 ---
+        case 'shutter':
+            presentChoice(`${P} 🚪 防火シャッターが降りて道が塞がれている。奥に物資が見える…`, [
+                crowbarOption('バールでこじ開ける', () => offerItems(
+                    [{ id: 'canned_food' }, { id: 'ammo', giveCount: 3 }, { id: 'bandage' }],
+                    'シャッターをこじ開けた！')),
+                leaveOption()
+            ]);
+            return;
+        case 'glass':
+            state.nextEncounterBonus = 0.10;
+            addLog(`${P} 🪟 窓ガラスが散乱している。歩くたびに音が響く…次のフェーズの遭遇率+10%。`, 'warning');
+            advancePhaseCount();
+            return;
+        case 'extinguisher':
+            offerItems([{ id: 'extinguisher' }], `${P} 🧯 廊下に消火器が残っている。`);
+            return;
+        case 'police_safe':
+            presentChoice(`${P} 🗄️ 押収品保管庫の金庫を発見！`, [
+                crowbarOption('バールでこじ開ける', () => offerItems([{ id: 'shotgun' }], '金庫をこじ開けた！')),
+                leaveOption()
+            ]);
+            return;
+        case 'riot':
+            triggerEncounter('riot', `${P} 🛡️ 防護服に身を包んだ機動隊がゾンビ化している！`);
+            return;
+
+        // --- 病院 ---
+        case 'chem_explosion':
+            if (hasItem('gas_mask')) {
+                addLog(`${P} 🧪 薬品が爆発し汚染ガスが蔓延！…ガスマスクで防いだ！`, 'success');
+            } else {
+                state.infection += 30;
+                addLog(`${P} 🧪 薬品が爆発し汚染ガスが蔓延！ 汚染度+30！`, 'danger');
+                AudioFX.play('hit');
+            }
+            advancePhaseCount();
+            return;
+        case 'pharmacy':
+            presentChoice(`${P} 💊 施錠された薬局を発見！`, [
+                crowbarOption('バールでこじ開ける', () => offerItems([{ id: 'antibiotics' }, { id: 'antibiotics' }], '薬局の棚に薬が残っていた！')),
+                leaveOption()
+            ]);
+            return;
+
+        // --- モール ---
+        case 'alarm':
+            state.forcedEncounter = { type: 'horde', reason: '🚨 防犯アラームに引き寄せられた大群が押し寄せてきた！' };
+            addLog(`${P} 🚨 防犯アラームがけたたましく鳴り響く！次のフェーズでゾンビの大群が来る…！`, 'danger');
+            AudioFX.play('alarm');
+            advancePhaseCount();
+            return;
+        case 'corpse':
+            presentChoice(`${P} 🧍 生存者の死体が倒れている…`, [
+                { label: '🔍 調べる (50%で戦闘 / 50%でアイテム)', cls: 'bg-amber-800 hover:bg-amber-700', run: () => {
+                    if (Math.random() < 0.5) triggerEncounter(null, '死体が起き上がった！');
+                    else offerItems([{ id: pickRandomItemId(STAGES[curStageIdx()]) }], '死体の荷物を見つけた。');
+                } },
+                leaveOption('🚶 調べない', 'そっとその場を離れた。')
+            ]);
+            return;
+        case 'shoes':
+            offerItems([{ id: 'running_shoes' }], `${P} 👟 スポーツ店にランニングシューズが残っている。`);
+            return;
+
+        // --- 空港 ---
+        case 'metal_detector': {
+            const metals = state.inventory.filter(i => i.metal);
+            if (metals.length > 0) {
+                state.forcedEncounter = { type: null, reason: '🚨 金属探知機の警報を聞きつけたゾンビが現れた！' };
+                addLog(`${P} 🚨 金属探知機が誤作動！カバンの「${metals[0].name}」に反応して警報が鳴った…次のフェーズで確定でゾンビと遭遇する！`, 'danger');
+                AudioFX.play('alarm');
+            } else {
+                addLog(`${P} 🚪 金属探知機のゲートを通過した。金属を持っていないので何も起きなかった。`);
+            }
+            advancePhaseCount();
+            return;
+        }
+        case 'baggage_gate':
+            presentChoice(`${P} 🧳 手荷物検査場のゲートの奥に、没収品が山積みになっている。`, [
+                crowbarOption('バールでゲートをこじ開ける', () => {
+                    const n = 3 + Math.floor(Math.random() * 2);
+                    const list = Array.from({ length: n }, () => ({ id: pickRandomItemId(STAGES[curStageIdx()]) }));
+                    offerItems(list, 'ゲートをこじ開けた！');
+                }),
+                leaveOption('🚶 素通りする', '検査場を素通りした。')
+            ]);
+            return;
+        case 'cop_corpse':
+            if (Math.random() < 0.7) {
+                offerItems([{ id: 'ammo', giveCount: 10 }], `${P} 👮 警察官の死体を発見。ホルスターに弾薬が残っている。`);
+            } else {
+                triggerEncounter(null, `${P} 👮 警察官の死体を調べようとしたら、起き上がった！`);
+            }
+            return;
+
+        // --- 館 ---
+        case 'hidden_door': {
+            const canExplore = hasItem('camera') || hasItem('flashlight');
+            presentChoice(`${P} 🕯️ 本棚の裏に隠し扉を発見した…`, [
+                { label: canExplore ? '🔦 探索する' : '🔦 探索する (小型カメラか懐中電灯が必要)', cls: 'bg-amber-800 hover:bg-amber-700', disabled: !canExplore,
+                  run: () => offerItems([{ id: 'rocket_launcher' }], '暗い隠し部屋の奥に武器が隠されていた！') },
+                leaveOption('🚶 探索しない', '隠し扉には近づかなかった。')
+            ]);
+            return;
+        }
+        case 'booby_trap':
+            damagePlayer(20, `${P} 🪓 ブービートラップが作動！ 20 ダメージ！`);
+            advancePhaseCount();
+            return;
+        case 'armory':
+            presentChoice(`${P} 🚪 施錠された部屋を発見した。`, [
+                crowbarOption('バールでこじ開ける', () => offerItems([{ id: 'shotgun' }, { id: 'ammo', giveCount: 5 }], '中は武器庫だった！')),
+                leaveOption()
+            ]);
+            return;
+
+        // --- 刑務所 ---
+        case 'guard_corpse':
+            presentChoice(`${P} 💀 看守の死体が倒れている。腰に鍵束が見える…`, [
+                { label: '🔍 調べる (汚染度+10)', cls: 'bg-amber-800 hover:bg-amber-700', run: () => {
+                    state.infection += 10;
+                    addLog('死体に触れて汚染度が+10された…', 'danger');
+                    offerItems([{ id: 'guard_key' }], '');
+                } },
+                leaveOption('🚶 調べない', '死体には触れずに進んだ。')
+            ]);
+            return;
+    }
+}
+
+// ---------- トラバサミ・消火器 ----------
+function isTrapArmed() {
+    return state.trapArmedStage === curStageIdx();
+}
+function installBearTrap() {
+    if (state.eventStatus === 'ENCOUNTER' || state.eventStatus === 'BOSS') {
+        addLog('戦闘中はトラバサミを設置できない！', 'danger');
+        return false;
+    }
+    if (isTrapArmed()) {
+        addLog('このステージにはもうトラバサミを設置している。', 'warning');
+        return false;
+    }
+    state.trapArmedStage = curStageIdx();
+    addLog(`🪤 トラバサミを設置した。このステージにいる間、次のゾンビ遭遇で一度だけ確実に逃げられる。`, 'success');
+    AudioFX.play('item');
+    return true;
+}
+
+// 消火器を1回使う（なくなったら消える）
+function useExtinguisherCharge() {
+    const ext = state.inventory.find(i => i.id === 'extinguisher');
+    if (!ext) return false;
+    ext.uses = (ext.uses ?? 3) - 1;
+    if (ext.uses <= 0) {
+        removeOneItem('extinguisher');
+        addLog('🧯 消火器が空になった。', 'warning');
+    }
+    return true;
+}
+
+function executeExtinguisherFlee() {
+    if (state.eventStatus !== 'ENCOUNTER' || !useExtinguisherCharge()) return;
+    addLog('🧯 消火器を噴射！白煙に紛れて100%安全に逃げ切った！', 'success');
+    AudioFX.play('item');
+    advancePhaseCount();
+    finishFightTurn();
+}
+
+// ---------- ボス戦：極変異体ホルゼイン ----------
+function triggerBoss() {
+    state.eventStatus = 'BOSS';
+    state.boss = { hp: BOSS.hp, maxHp: BOSS.hp, turn: 1, evadeMenu: false, nextAttack: rollBossAttack() };
+    addLog(`【最終フェーズ】 ${BOSS.icon} 脱出地点に極変異体「ホルゼイン」が出現した！！ 滞在フェーズが強制+10され、この戦闘中は空腹度が減らない。`, 'danger');
+    announceBossAttack();
+    AudioFX.play('alarm');
+}
+
+function rollBossAttack() {
+    return BOSS.attacks[Math.floor(Math.random() * BOSS.attacks.length)];
+}
+function announceBossAttack() {
+    const a = state.boss.nextAttack;
+    addLog(`${BOSS.icon} ホルゼインが「${a.icon}${a.name}」の構えを見せた！(${a.desc})`, 'warning');
+}
+
+function applyBossAttack() {
+    const a = state.boss.nextAttack;
+    if (a.id === 'rush') {
+        state.hp -= 30;
+        addLog(`${a.icon} ホルゼインの突進！ 30 ダメージ！`, 'danger');
+    } else if (a.id === 'explode') {
+        state.infection += 30;
+        addLog(`${a.icon} ホルゼインが爆発的に体液を撒き散らした！ 汚染度+30！`, 'danger');
+    } else {
+        state.hunger -= 30;
+        addLog(`${a.icon} ホルゼインの叫び声で体力を奪われた！ 空腹度-30！`, 'danger');
+    }
+    AudioFX.play('hit');
+}
+
+function nextBossTurn() {
+    state.boss.turn++;
+    state.boss.evadeMenu = false;
+    state.boss.nextAttack = rollBossAttack();
+    if (state.hp > 0 && state.infection < 100 && state.hunger > 0) announceBossAttack();
+}
+
+// weaponId: 'handgun' / 'shotgun' / 'rocket_launcher' / 'fist'
+function bossAttack(weaponId) {
+    if (state.eventStatus !== 'BOSS') return;
+    if (weaponId === 'fist') {
+        addLog('使える武器がない！素手ではホルゼインに傷ひとつ付けられない…', 'danger');
+    } else {
+        const weapon = WEAPONS[weaponId];
+        if (!weapon || !hasItem(weaponId)) return;
+        if (weapon.usesAmmo && !consumeAmmo()) return;
+        if (weapon.singleUse) removeOneItem(weaponId);
+        AudioFX.play(weapon.sfx);
+        const dmg = BOSS.weaponDamage[weaponId] || 0;
+        state.boss.hp -= dmg;
+        if (state.boss.hp <= 0) {
+            state.boss.hp = 0;
+            state.gold += KILL_REWARD;
+            addLog(`${weapon.icon} ${weapon.name}が直撃！ ${BOSS.icon} ホルゼインを討伐した！！ 💰+${KILL_REWARD}G`, 'success');
+            state.phase = 101; // クリア判定へ
+            finishFightTurn();
+            return;
+        }
+        addLog(`${weapon.icon} ${weapon.name}で ${dmg} ダメージ！ (ホルゼイン残りHP ${state.boss.hp}/${state.boss.maxHp})`, 'success');
+    }
+    applyBossAttack();
+    nextBossTurn();
+    finishFightTurn();
+}
+
+function toggleBossEvadeMenu(open) {
+    if (state.eventStatus !== 'BOSS') return;
+    state.boss.evadeMenu = open;
+    renderActionButtons();
+}
+
+// 避ける：発煙筒/消火器で回避、トラバサミで攻撃をキャンセル
+function bossEvade(itemId) {
+    if (state.eventStatus !== 'BOSS') return;
+    const a = state.boss.nextAttack;
+    if (itemId === 'flare' && removeOneItem('flare')) {
+        addLog(`🏮 発煙筒の煙に隠れ、ホルゼインの「${a.name}」を完全に回避した！`, 'success');
+    } else if (itemId === 'extinguisher' && useExtinguisherCharge()) {
+        addLog(`🧯 消火器を噴射し、ホルゼインの「${a.name}」を完全に回避した！`, 'success');
+    } else if (itemId === 'bear_trap' && removeOneItem('bear_trap')) {
+        addLog(`🪤 トラバサミがホルゼインの足を捕らえた！「${a.name}」をキャンセルさせた！`, 'success');
+    } else {
+        return;
+    }
+    AudioFX.play('item');
+    nextBossTurn();
+    finishFightTurn();
+}
+
+function renderBossButtons(panel) {
+    const b = state.boss;
+    const a = b.nextAttack;
+    const info = document.createElement('div');
+    info.className = 'text-xs text-center text-red-200 bg-red-950/60 border border-red-800 rounded p-1.5';
+    const hpPct = Math.round((b.hp / b.maxHp) * 100);
+    info.innerHTML = `<div class="font-bold">${BOSS.icon} ホルゼイン HP ${b.hp}/${b.maxHp} ｜ 決戦 ${b.turn}ターン目</div>
+        <div class="w-full bg-slate-800 h-2 rounded overflow-hidden my-1"><div class="bg-red-500 h-full" style="width:${hpPct}%"></div></div>
+        <div>次の攻撃：<b>${a.icon}${a.name}</b>（${a.desc}）</div>`;
+    panel.appendChild(info);
+
+    if (b.evadeMenu) {
+        const opts = [
+            { id: 'flare', label: '🏮 発煙筒で回避する', ok: hasItem('flare') },
+            { id: 'extinguisher', label: `🧯 消火器で回避する${hasItem('extinguisher') ? ` (残り${state.inventory.find(i => i.id === 'extinguisher').uses}回)` : ''}`, ok: hasItem('extinguisher') },
+            { id: 'bear_trap', label: '🪤 トラバサミで攻撃をキャンセル', ok: hasItem('bear_trap') }
+        ];
+        opts.forEach(o => {
+            const btn = createActionButton(o.ok ? o.label : `${o.label} (持っていない)`, () => bossEvade(o.id), 'bg-cyan-800 hover:bg-cyan-700');
+            btn.disabled = !o.ok;
+            btn.classList.add('disabled:opacity-40', 'disabled:cursor-not-allowed');
+            panel.appendChild(btn);
+        });
+        panel.appendChild(createActionButton('↩️ 戻る', () => toggleBossEvadeMenu(false), 'bg-slate-800 hover:bg-slate-700'));
+        return;
+    }
+
+    const ammoCount = getAmmoCount();
+    let usable = 0;
+    Object.entries(WEAPONS).forEach(([id, w]) => {
+        if (!hasItem(id)) return;
+        const noAmmo = w.usesAmmo && ammoCount <= 0;
+        const dmg = BOSS.weaponDamage[id];
+        const label = noAmmo ? `${w.icon} ${w.name} (弾切れ)` : `${w.icon} ${w.name}で撃つ (${dmg}ダメージ${w.usesAmmo ? ` / 弾薬${ammoCount}発` : ' / 使い切り'})`;
+        const btn = createActionButton(label, () => bossAttack(id), id === 'rocket_launcher' ? 'bg-orange-700 hover:bg-orange-600' : 'bg-red-800 hover:bg-red-700');
+        if (noAmmo) btn.disabled = true; else usable++;
+        btn.classList.add('disabled:opacity-40', 'disabled:cursor-not-allowed');
+        panel.appendChild(btn);
+    });
+    if (usable === 0) panel.appendChild(createActionButton('👊 素手で抵抗する (ダメージを与えられない)', () => bossAttack('fist'), 'bg-red-900 hover:bg-red-800'));
+    const canEvade = hasItem('flare') || hasItem('extinguisher') || hasItem('bear_trap');
+    const evadeBtn = createActionButton(canEvade ? '🛡️ 避ける (アイテムで回避・キャンセル)' : '🛡️ 避ける (発煙筒・消火器・トラバサミが必要)', () => toggleBossEvadeMenu(true), 'bg-blue-800 hover:bg-blue-700');
+    evadeBtn.disabled = !canEvade;
+    evadeBtn.classList.add('disabled:opacity-40', 'disabled:cursor-not-allowed');
+    panel.appendChild(evadeBtn);
+}
+
+// 環境表示（ゲーム画面左下）
+function updateEnvironmentText() {
+    const el = document.getElementById('canvas-overlay-text');
+    if (!el) return;
+    const parts = [];
+    if (state.selectedClass) {
+        const mods = getStageModifiers();
+        parts.push(...mods.notes);
+        if (isTrapArmed()) parts.push('🪤トラバサミ設置中');
+        if (state.stallPhases > 0) parts.push(`🔒閉じ込め 残り${state.stallPhases}フェーズ`);
+        if (state.forcedEncounter) parts.push('⚠️次のフェーズで確定遭遇');
+        if (state.nextEncounterBonus) parts.push('🪟次の遭遇率+10%');
+    }
+    el.textContent = parts.length ? `環境: ${parts.join(' / ')}` : '環境: 特になし';
 }
 
 // 拠点 (セーフルーム) 到着
@@ -1684,7 +2374,7 @@ function renderShelterPanels() {
 }
 
 function rollShopStock() {
-    const pool = Object.keys(SELL_PRICES).filter(id => ITEM_DB[id]);
+    const pool = Object.keys(SELL_PRICES).filter(id => ITEM_DB[id] && !ITEM_DB[id].eventOnly);
     // 重複なしでランダムに3つ
     for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -1855,7 +2545,7 @@ function checkGameOver() {
         if (state.eventStatus === 'SHELTER') closeStashPanel();
         state.eventStatus = 'CLEAR';
         updateHUD();
-        addLog('【GAME CLEAR!!】 100フェーズを生き延び、奇跡の脱出を果たした！！', 'success');
+        addLog('【GAME CLEAR!!】 極変異体ホルゼインを倒し、100フェーズを生き延びて奇跡の脱出を果たした！！', 'success');
         renderActionButtons();
     }
 }
@@ -1894,13 +2584,18 @@ function renderActionButtons() {
         if (usableCount === 0 && !(enemy.immuneTo && enemy.immuneTo.includes('fist'))) {
             panel.appendChild(createActionButton('👊 素手で抵抗する (倒せない・反撃を受ける)', () => executeFight('fist'), 'bg-red-900 hover:bg-red-800'));
         }
-        const fleeBtn = createActionButton(`🏃 逃げる (${Math.round(Math.max(0.1, state.currentEvasion - (state.currentEnemy ? state.currentEnemy.evaPenalty : 0)) * 100)}%で成功)`, () => executeFlee(), 'bg-blue-800 hover:bg-blue-700');
+        const fleeLabel = isTrapArmed() ? '🏃 逃げる (🪤トラバサミで100%成功)' : `🏃 逃げる (${Math.round(getFleeChance() * 100)}%で成功)`;
+        const fleeBtn = createActionButton(fleeLabel, () => executeFlee(), 'bg-blue-800 hover:bg-blue-700');
         
         panel.appendChild(fleeBtn);
 
         if (state.inventory.some(i => i.id === 'flare')) {
             const flareBtn = createActionButton('🏮 発煙筒を使う (100%確定逃走)', () => executeFlareFlee(), 'bg-yellow-700 hover:bg-yellow-600');
             panel.appendChild(flareBtn);
+        }
+        const ext = state.inventory.find(i => i.id === 'extinguisher');
+        if (ext) {
+            panel.appendChild(createActionButton(`🧯 消火器を使う (100%回避 / 残り${ext.uses}回)`, () => executeExtinguisherFlee(), 'bg-red-700 hover:bg-red-600'));
         }
     } 
     else if (state.eventStatus === 'ITEM_FOUND') {
@@ -1921,6 +2616,17 @@ function renderActionButtons() {
         panel.appendChild(openBtn);
         panel.appendChild(passBtn);
     } 
+    else if (state.eventStatus === 'CHOICE' && state.choice) {
+        state.choice.options.forEach((opt, idx) => {
+            const btn = createActionButton(opt.label, () => chooseOption(idx), opt.cls || 'bg-slate-800 hover:bg-slate-700');
+            if (opt.disabled) btn.disabled = true;
+            btn.classList.add('disabled:opacity-40', 'disabled:cursor-not-allowed');
+            panel.appendChild(btn);
+        });
+    }
+    else if (state.eventStatus === 'BOSS' && state.boss) {
+        renderBossButtons(panel);
+    }
     else if (state.eventStatus === 'SAFE') {
         const hasCrowbar = state.inventory.some(i => i.id === 'crowbar');
         if (hasCrowbar) {
