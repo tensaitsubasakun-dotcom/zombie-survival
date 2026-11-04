@@ -1973,9 +1973,12 @@ const STAGE_HAPPENINGS = {
     8: ['guard_corpse']
 };
 
+// 共通の金庫（バールで4〜5個）が出ないステージ：農場・住宅街・学校、警察署(専用の金庫があるため)
+const NO_COMMON_SAFE_STAGES = [0, 1, 2, 3];
+
 function triggerStageHappening() {
     const idx = curStageIdx();
-    const pool = ['door', ...(idx === 3 ? [] : ['safe']), ...(STAGE_HAPPENINGS[idx] || [])];
+    const pool = ['door', ...(NO_COMMON_SAFE_STAGES.includes(idx) ? [] : ['safe']), ...(STAGE_HAPPENINGS[idx] || [])];
     const id = pool[Math.floor(Math.random() * pool.length)];
     runHappening(id);
 }
