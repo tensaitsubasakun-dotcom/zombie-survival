@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>ゾンビサバイバル - 2D Inventory Rogue-lite</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -77,6 +77,21 @@
         @keyframes gauge-blink-text {
             0%, 100% { opacity: 1; }
             50%      { opacity: 0.4; }
+        }
+
+        /* タップ時のダブルタップ拡大・反応遅延を防ぐ */
+        button, .grid-cell, [draggable="true"] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
+        /* スマホ：行動ボタンを画面下に固定（スクロールしても常に押せる） */
+        @media (max-width: 767px) {
+            #action-panel {
+                position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+                min-height: 0; max-height: 45vh; overflow-y: auto;
+                border-radius: 0; border-width: 2px 0 0 0; border-color: #6b21a8;
+                padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+                background: rgba(2, 6, 23, 0.97);
+                box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.6);
+            }
         }
 
         /* カスタムスクロールバー */
@@ -177,7 +192,7 @@
     <main class="md:h-[60vh] flex flex-col md:flex-row p-2 gap-2 bg-slate-950 relative overflow-hidden">
         
         <!-- 左側 (または全幅)：2D Canvas アニメーション画面 -->
-        <div class="w-full md:w-1/2 h-[220px] md:h-full relative rounded border-2 border-slate-800 bg-black overflow-hidden flex items-center justify-center">
+        <div class="w-full md:w-1/2 h-[190px] md:h-full relative rounded border-2 border-slate-800 bg-black overflow-hidden flex items-center justify-center">
             <canvas id="gameCanvas" class="w-full h-full object-cover"></canvas>
             <div class="scanlines absolute inset-0 pointer-events-none"></div>
             <!-- Canvasオーバーレイテキスト (イベント通知等) -->
@@ -187,10 +202,10 @@
         </div>
 
         <!-- 右側：イベント＆ダイアログ＆アクション制御パネル -->
-        <div class="w-full md:w-1/2 h-[320px] md:h-full flex flex-col justify-between bg-slate-900/90 border-2 border-purple-950 p-3 rounded pixel-card">
+        <div class="w-full md:w-1/2 h-[210px] md:h-full flex flex-col justify-between bg-slate-900/90 border-2 border-purple-950 p-3 rounded pixel-card">
             
             <!-- ログテキスト出力エリア -->
-            <div id="game-log" class="flex-1 overflow-y-auto mb-3 pr-2 space-y-2 text-xs md:text-sm">
+            <div id="game-log" class="flex-1 overflow-y-auto md:mb-3 pr-2 space-y-2 text-xs md:text-sm">
                 <!-- ログメッセージがここに動的に追加される -->
             </div>
 
@@ -210,7 +225,10 @@
                 <span class="text-xs md:text-sm text-purple-300 font-bold flex items-center gap-1">
                     🎒 カバン (<span id="inv-capacity-text">5×3=15マス</span>)
                 </span>
-                <span id="inv-usage-text" class="text-xs text-slate-400">使用: 0/15</span>
+                <span class="flex items-center gap-2">
+                    <span id="inv-hint" class="hidden text-[10px] md:text-xs text-yellow-300">👆 置きたいマスをタップで移動</span>
+                    <span id="inv-usage-text" class="text-xs text-slate-400">使用: 0/15</span>
+                </span>
             </div>
 
             <!-- インベントリグリッド本体 -->
@@ -222,7 +240,7 @@
         </div>
 
         <!-- 右：選択中アイテム情報 ＆ アクション操作・拠点時のスタッシュ -->
-        <div class="w-full md:w-1/2 min-h-[230px] md:h-full bg-slate-950 p-2 rounded border border-slate-800 flex flex-col justify-between">
+        <div class="w-full md:w-1/2 min-h-[140px] md:h-full bg-slate-950 p-2 rounded border border-slate-800 flex flex-col justify-between">
             
             <!-- 通常時：アイテム情報と個別操作 -->
             <div id="item-detail-panel" class="h-full flex flex-col justify-between">
@@ -253,7 +271,10 @@
             <div id="stash-panel" class="h-full hidden flex-col justify-between">
                 <div class="flex justify-between items-center mb-1">
                     <span class="text-xs md:text-sm text-cyan-300 font-bold">📦 拠点保管庫 (次回プレイへ引き継ぎ)</span>
-                    <span class="text-xs text-slate-400">5×4マス</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-slate-400">5×4マス</span>
+                        <button id="btn-stash-rotate" onclick="rotateSelectedItem()" disabled class="pixel-btn bg-slate-800 hover:bg-slate-700 text-[11px] px-2 py-0.5 text-slate-200 rounded disabled:opacity-30">🔄 回転</button>
+                    </div>
                 </div>
                 <div class="flex-1 flex items-center justify-center overflow-auto p-1">
                     <div id="stash-grid" class="grid grid-cols-5 gap-1 bg-slate-900 p-1.5 rounded border border-cyan-900">
@@ -265,7 +286,10 @@
             <!-- 拠点（セーフルーム）時：ショップパネル（初期非表示） -->
             <div id="shop-panel" class="h-full hidden flex-col">
                 <div class="flex justify-between items-center mb-1">
-                    <span class="text-xs md:text-sm text-yellow-300 font-bold">🛒 ショップ</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs md:text-sm text-yellow-300 font-bold">🛒 ショップ</span>
+                        <button id="btn-shop-rotate" onclick="rotateSelectedItem()" disabled class="pixel-btn bg-slate-800 hover:bg-slate-700 text-[11px] px-2 py-0.5 text-slate-200 rounded disabled:opacity-30">🔄 回転</button>
+                    </div>
                     <span class="text-xs text-yellow-300 font-bold">所持金: <span id="shop-gold">0</span>G</span>
                 </div>
                 <div id="shop-list" class="flex-1 overflow-y-auto space-y-1 pr-1 text-xs">
@@ -844,6 +868,15 @@ function selectItem(instanceId, rerender = true) {
         btnDrop.disabled = true;
     }
 
+    const canRotate = !!item && item.w !== item.h;
+    ['btn-stash-rotate', 'btn-shop-rotate'].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.disabled = !canRotate;
+    });
+    if (item && item.w === item.h) btnRotate.disabled = true;
+    const hint = document.getElementById('inv-hint');
+    if (hint) hint.classList.toggle('hidden', !item);
+
     if (!rerender) return;
     renderInventoryGrid();
     if (state.eventStatus === 'SHELTER') renderShelterPanels();
@@ -852,18 +885,24 @@ function selectItem(instanceId, rerender = true) {
 // 選択中のアイテム回転
 function rotateSelectedItem() {
     if (!state.selectedInstanceId) return;
-    const item = state.inventory.find(i => i.instanceId === state.selectedInstanceId);
-    if (!item) return;
+    // カバン内か、拠点にいる時は保管庫内のアイテムも回転できる
+    let item = state.inventory.find(i => i.instanceId === state.selectedInstanceId);
+    let list = state.inventory, maxC = state.cols, maxR = state.rows, inStash = false;
+    if (!item && state.eventStatus === 'SHELTER') {
+        item = state.stash.find(i => i.instanceId === state.selectedInstanceId);
+        list = state.stash; maxC = 5; maxR = 4; inStash = true;
+    }
+    if (!item || item.w === item.h) return; // 正方形は回しても同じ
 
     const rotated = { ...item, w: item.h, h: item.w };
-    if (canPlaceItem(state.inventory, rotated, item.x, item.y, item.instanceId)) {
+    if (canPlaceItem(list, rotated, item.x, item.y, item.instanceId, maxC, maxR)) {
         item.w = rotated.w;
         item.h = rotated.h;
         AudioFX.play('click');
-        renderInventoryGrid();
+        if (inStash) saveStash();
         selectItem(item.instanceId);
     } else {
-        addLog('回転するスペースがありません！', 'danger');
+        addLog('回転するスペースがありません！周りを空けるか、別の場所に動かしてから回そう。', 'danger');
     }
 }
 
@@ -1602,6 +1641,10 @@ function showShelterView(view) {
     AudioFX.play('click');
     renderShelterPanels();
     renderActionButtons();
+    if (isMobileLayout()) {
+        const target = document.getElementById(view === 'shop' ? 'shop-panel' : 'stash-panel');
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 function renderShelterPanels() {
@@ -1887,7 +1930,16 @@ function renderActionButtons() {
         const fb = createActionButton('💡 修正案・バグ報告を送る', () => window.open(FEEDBACK_URL, '_blank', 'noopener'), 'bg-slate-800 hover:bg-slate-700');
         panel.appendChild(fb);
     }
+    updateBottomBarSpace();
 }
+
+// スマホでは行動ボタンが画面下に固定されるので、その高さぶんページ下に余白を取る
+function isMobileLayout() { return window.matchMedia('(max-width: 767px)').matches; }
+function updateBottomBarSpace() {
+    const panel = document.getElementById('action-panel');
+    document.body.style.paddingBottom = isMobileLayout() ? `${panel.offsetHeight + 8}px` : '';
+}
+window.addEventListener('resize', updateBottomBarSpace);
 
 function createActionButton(text, onClick, bgClass) {
     const btn = document.createElement('button');
