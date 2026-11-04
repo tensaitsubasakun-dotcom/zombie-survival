@@ -413,7 +413,7 @@ const STAGES = [
     { name: '住宅街', desc: '民家の台所に食料が残っている。', encounter: 0.25, item: 0.35, happening: 0.15, event: 0.15, foodRate: 0.5 },
     { name: '学校', desc: 'ハプニング多発。校内放送に注意。給食室に食料あり。', encounter: 0.25, item: 0.20, happening: 0.40, event: 0.10, foodRate: 0.5 },
     { name: '警察署', desc: '銃器・弾薬豊富。遭遇率高。', encounter: 0.45, item: 0.30, happening: 0.10, event: 0.15 },
-    { name: '病院', desc: '滞在で毎ターン汚染度上昇。', encounter: 0.35, item: 0.40, happening: 0.10, event: 0.15, infectPerTurn: 4 },
+    { name: '病院', desc: '滞在で毎ターン汚染度上昇。', encounter: 0.35, item: 0.40, happening: 0.10, event: 0.15, infectPerTurn: 20 },
     { name: 'モール', desc: '最高レアと最高遭遇率の死地。', encounter: 0.55, item: 0.40, happening: 0.10, event: 0.15 },
     { name: '空港', desc: '軍事用品。金属探知機リスク。', encounter: 0.35, item: 0.35, happening: 0.15, event: 0.15 },
     { name: '館', desc: 'ブービートラップ多数。高価値品。', encounter: 0.40, item: 0.30, happening: 0.20, event: 0.15 },
@@ -474,7 +474,7 @@ const ITEM_DB = {
     'bear_trap': { id: 'bear_trap', name: 'トラバサミ', w: 2, h: 1, type: 'utility', color: 'bg-zinc-800', border: 'border-zinc-400', icon: '🪤', desc: '「使用する」でその場に設置。そのステージにいる間、次のゾンビ遭遇で一度だけ回避率100%。ボス戦では使えない。', noRandomDrop: true, metal: true },
     'extinguisher': { id: 'extinguisher', name: '消火器', w: 2, h: 1, type: 'utility', color: 'bg-red-800', border: 'border-red-400', icon: '🧯', desc: '戦闘中に使うとゾンビを100%回避できる。3回まで使用可能。売却不可・非売品。', uses: 3, noRandomDrop: true, metal: true },
     'running_shoes': { id: 'running_shoes', name: 'ランニングシューズ', w: 1, h: 2, type: 'utility', color: 'bg-sky-800', border: 'border-sky-400', icon: '👟', desc: '所持しているだけで回避率が10%上昇する。', noRandomDrop: true },
-    'guard_key': { id: 'guard_key', name: '看守の鍵', w: 1, h: 1, type: 'utility', color: 'bg-amber-800', border: 'border-amber-400', icon: '🗝️', desc: '刑務所の「独房のロックダウン」発生時に自動で使用され、閉じ込めを回避できる。', noRandomDrop: true, metal: true },
+    'guard_key': { id: 'guard_key', name: '看守の鍵', w: 1, h: 1, type: 'utility', color: 'bg-amber-800', border: 'border-amber-400', icon: '🗝️', desc: '「使用する」で刑務所の「独房のロックダウン」を解除できる。解除するまでフェーズが進まない。', noRandomDrop: true, metal: true },
     'car_battery': { id: 'car_battery', name: '車のバッテリー', w: 2, h: 2, type: 'special', color: 'bg-slate-900', border: 'border-yellow-600', icon: '🔋', desc: '重く逃走率が-10%下がる重荷。後半の通信機イベントで超有用化。', metal: true }
 };
 
@@ -542,6 +542,7 @@ let state = {
     stageEvents: null,          // { stageIdx, active: [イベントID] } そのステージ中だけ有効
     onceEvents: {},             // 1プレイ1回のイベントの発生済みフラグ
     stallPhases: 0,             // 閉じ込め等で延長される残りフェーズ
+    prisonLocked: false,        // 刑務所のロックダウン中（看守の鍵で解除）
     forcedEncounter: null,      // 次のフェーズで確定する遭遇 { type, reason }
     nextEncounterBonus: 0,      // 次のフェーズだけの遭遇率上乗せ
     trapArmedStage: null,       // トラバサミを設置したステージ
@@ -913,8 +914,8 @@ function selectItem(instanceId, rerender = true) {
         descEl.textContent = item.desc;
 
         btnRotate.disabled = false;
-        btnUse.disabled = !(item.type === 'heal' || item.type === 'food' || item.id === 'bear_trap');
-        btnUse.textContent = item.id === 'bear_trap' ? '🪤 設置する' : '✨ 使用する';
+        btnUse.disabled = !(item.type === 'heal' || item.type === 'food' || item.id === 'bear_trap' || item.id === 'guard_key');
+        btnUse.textContent = item.id === 'bear_trap' ? '🪤 設置する' : item.id === 'guard_key' ? '🗝️ 扉を開ける' : '✨ 使用する';
         btnDrop.disabled = false;
     } else {
         titleEl.textContent = 'アイテムを選択してください';
@@ -974,7 +975,12 @@ function useSelectedItem() {
     if (idx === -1) return;
 
     const item = state.inventory[idx];
-    if (item.id === 'bear_trap') {
+    if (item.id === 'guard_key') {
+        useGuardKey(); // 鍵の消費・表示更新は useGuardKey 内で行う
+        state.selectedInstanceId = null;
+        selectItem(null);
+        return;
+    } else if (item.id === 'bear_trap') {
         if (!installBearTrap()) return;
     } else if (item.id === 'bandage') {
         state.hp = Math.min(state.maxHp, state.hp + 40);
@@ -1323,6 +1329,7 @@ function startGame() {
     state.stageEvents = null;
     state.onceEvents = {};
     state.stallPhases = 0;
+    state.prisonLocked = false;
     state.forcedEncounter = null;
     state.nextEncounterBonus = 0;
     state.trapArmedStage = null;
@@ -1434,6 +1441,12 @@ function nextPhaseTurn() {
 }
 
 function advancePhaseCount() {
+    // 刑務所のロックダウン中は、看守の鍵を使うまでフェーズ番号が進まない
+    if (isLockedDown()) {
+        addLog('🔒 独房のロックダウン中…フェーズが進まない。看守の鍵を見つけて使おう。', 'warning');
+        state.eventStatus = 'EXPLORE';
+        return;
+    }
     // 閉じ込め（シャッター閉鎖・ロックダウン）中はフェーズ番号が進まない
     if (state.stallPhases > 0) {
         state.stallPhases--;
@@ -1840,25 +1853,24 @@ const STAGE_EVENTS = {
         { id: 'car_alarm', name: 'カーアラーム', icon: '🚨', text: 'パトカーのアラームが鳴り響く。警察署での遭遇率が10%アップ。', enc: 0.10 }
     ],
     4: [ // 病院
-        { id: 'leak', name: '廃棄物の漏洩', icon: '🛢️', text: '医療廃棄物が漏れ出した！病院では毎フェーズ汚染度+20（ガスマスクがあれば無効）。', infect: 20, gasMaskBlocks: true },
         { id: 'mutation', name: '変異体の発生', icon: '🧬', text: '院内で変異が進んでいる。特殊ゾンビの遭遇率が10%アップ。', specialBonus: 0.10 },
         { id: 'blackout', name: '停電', icon: '🌑', text: '病院が停電。回避率が15%ダウン（懐中電灯があれば無効）。', eva: -0.15, noFlashlight: true }
     ],
     5: [ // モール
         { id: 'mall_shutter', name: 'シャッター強制閉鎖', icon: '🚧', text: '防犯システムが暴走しシャッターが閉鎖！モールでの滞在が2フェーズ延長される。', stall: 2, oncePerGame: true },
-        { id: 'barricade', name: 'バリケードの崩壊', icon: '🧱', text: 'バリケードが崩れた！ゾンビの大群の出現率が上昇。', hordeMult: 1.5 },
+        { id: 'barricade', name: 'バリケードの崩壊', icon: '🧱', text: 'バリケードが崩れた！ゾンビの大群の出現率が上昇。', hordeMult: 1.5, entryOnly: true },
         { id: 'blackout', name: '停電', icon: '🌑', text: 'モールが停電。回避率が20%ダウン（懐中電灯があれば無効）。', eva: -0.20, noFlashlight: true }
     ],
     6: [ // 空港
         { id: 'gust', name: '割れた窓からの突風', icon: '🌬️', text: '強風が吹き荒れる。逃走確率が30%ダウン。', eva: -0.30 },
-        { id: 'runner_surge', name: '特定の変異体の増殖', icon: '🏃', text: 'ランナーが増殖している！遭遇するゾンビの80%がランナーになる。', runnerRate: 0.80 },
+        { id: 'runner_surge', name: '特定の変異体の増殖', icon: '🏃', text: 'ランナーが増殖している！遭遇するゾンビはすべてランナーになる。', runnerRate: 1.0, entryOnly: true },
         { id: 'escape_route', name: '避難経路発見', icon: '🧭', text: '避難経路の案内を見つけた。回避率が10%アップ。', eva: 0.10 }
     ],
     7: [ // 館
         { id: 'titan', name: '超変異体の発生', icon: '🗿', text: '館の奥から地響きが…！次のフェーズで特殊ゾンビ「タイタン」が確定で出現する。', titan: true, oncePerGame: true }
     ],
     8: [ // 刑務所
-        { id: 'lockdown', name: '独房のロックダウン', icon: '🔒', text: '自動ドアが閉鎖された！刑務所での滞在が2フェーズ延長される。', stall: 2, repeatable: true, keyAvoids: true },
+        { id: 'lockdown', name: '独房のロックダウン', icon: '🔒', text: '自動ドアが閉鎖された！看守の鍵を使って扉を開けるまで、フェーズが進まない。', lockdown: true, entryOnly: true },
         { id: 'contaminated', name: '汚染された監獄', icon: '☣️', text: '監獄全体が汚染されている！刑務所にいる限り毎フェーズ汚染度+15。', infect: 15 }
     ]
 };
@@ -1906,6 +1918,7 @@ function triggerAreaEvent() {
     getActiveStageEvents(); // ステージ切替時のリセット
     const isLastPhaseOfStage = state.phase % 10 === 0;
     const candidates = (STAGE_EVENTS[idx] || []).filter(ev => {
+        if (ev.entryOnly) return false; // ステージに入った時だけ起きるイベント
         if (ev.repeatable) return true;
         if (state.stageEvents.active.includes(ev.id)) return false;
         if (ev.oncePerGame && state.onceEvents[ev.id]) return false;
@@ -1941,13 +1954,38 @@ function triggerAreaEvent() {
     state.eventStatus = 'EVENT';
     advancePhaseCount(); // イベントが起きたフェーズ自体は普通に進む
     // 閉じ込め：この後の stall フェーズぶん、フェーズ番号が進まなくなる
-    if (ev.stall) {
-        if (ev.keyAvoids && removeOneItem('guard_key')) {
-            addLog('🗝️ 看守の鍵で扉を開け、閉じ込めを回避した！(鍵は使い切った)', 'success');
-        } else {
-            state.stallPhases += ev.stall;
-        }
+    if (ev.stall) state.stallPhases += ev.stall;
+}
+
+// ステージに入った瞬間に必ず起きるイベント（フェーズは進まない）
+function applyStageEntryEvents() {
+    const idx = curStageIdx();
+    getActiveStageEvents(); // 新しいステージ用にリセット
+    (STAGE_EVENTS[idx] || []).filter(ev => ev.entryOnly).forEach(ev => {
+        if (!ev.lockdown) state.stageEvents.active.push(ev.id);
+        addLog(`【${STAGES[idx].name}到着 イベント】 ${ev.icon} ${ev.name}：${ev.text}`, 'warning');
+        if (ev.lockdown) state.prisonLocked = true;
+    });
+    if ((STAGE_EVENTS[idx] || []).some(ev => ev.entryOnly)) AudioFX.play('alarm');
+}
+
+// 刑務所のロックダウン中：看守の鍵を使うまでフェーズが進まない
+function isLockedDown() {
+    return !!state.prisonLocked && curStageIdx() === 8;
+}
+function useGuardKey() {
+    if (!isLockedDown()) {
+        addLog('今は看守の鍵を使う場面がない。', 'warning');
+        return false;
     }
+    if (!removeOneItem('guard_key')) return false;
+    state.prisonLocked = false;
+    addLog('🗝️ 看守の鍵で独房の扉を開けた！ロックダウンが解除され、先へ進めるようになった。(鍵は使い切った)', 'success');
+    AudioFX.play('item');
+    updateHUD();
+    renderInventoryGrid();
+    renderActionButtons();
+    return true;
 }
 
 // ---------- 汎用：アイテムを見つける / 選択肢を出す ----------
@@ -2155,13 +2193,10 @@ function runHappening(id) {
             return;
         }
         case 'baggage_gate':
-            presentChoice(`${P} 🧳 手荷物検査場のゲートの奥に、没収品が山積みになっている。`, [
-                crowbarOption('バールでゲートをこじ開ける', () => {
-                    const n = 3 + Math.floor(Math.random() * 2);
-                    const list = Array.from({ length: n }, () => ({ id: pickRandomItemId(STAGES[curStageIdx()]) }));
-                    offerItems(list, 'ゲートをこじ開けた！');
-                }),
-                leaveOption('🚶 素通りする', '検査場を素通りした。')
+            presentChoice(`${P} 🗄️ 武器管理室を発見した！扉には鍵がかかっている…`, [
+                crowbarOption('バールで扉をこじ開ける', () => offerItems(
+                    [{ id: 'shotgun' }, { id: 'ammo', giveCount: AMMO_PER_PICKUP }], '武器管理室の扉をこじ開けた！')),
+                leaveOption('🚶 素通りする', '武器管理室を素通りした。')
             ]);
             return;
         case 'cop_corpse':
@@ -2393,6 +2428,7 @@ function updateEnvironmentText() {
         parts.push(...mods.notes);
         if (isTrapArmed()) parts.push('🪤トラバサミ設置中');
         if (state.stallPhases > 0) parts.push(`🔒閉じ込め 残り${state.stallPhases}フェーズ`);
+        if (isLockedDown()) parts.push('🔒独房ロックダウン中(看守の鍵が必要)');
         if (state.forcedEncounter) parts.push('⚠️次のフェーズで確定遭遇');
         if (state.nextEncounterBonus) parts.push('🪟次の遭遇率+10%');
     }
@@ -2576,6 +2612,7 @@ function leaveShelter() {
 
     state.eventStatus = 'EXPLORE';
     addLog(`【再出撃】 装備を整え、次のステージへ足を踏み入れた…`, 'warning');
+    applyStageEntryEvents();
     updateHUD();
     renderActionButtons();
 }
@@ -2620,7 +2657,10 @@ function renderActionButtons() {
     panel.innerHTML = '';
 
     if (state.eventStatus === 'EXPLORE') {
-        const btn = createActionButton('👣 次のフェーズへ進む (探索)', () => nextPhaseTurn(), 'bg-purple-800 hover:bg-purple-700');
+        if (isLockedDown() && hasItem('guard_key')) {
+            panel.appendChild(createActionButton('🗝️ 看守の鍵で独房の扉を開ける', () => useGuardKey(), 'bg-amber-700 hover:bg-amber-600'));
+        }
+        const btn = createActionButton(isLockedDown() ? '👣 独房の中を探索する (フェーズは進まない)' : '👣 次のフェーズへ進む (探索)', () => nextPhaseTurn(), 'bg-purple-800 hover:bg-purple-700');
         panel.appendChild(btn);
     } 
     else if (state.eventStatus === 'ENCOUNTER') {
