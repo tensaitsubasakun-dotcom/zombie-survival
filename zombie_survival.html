@@ -2250,7 +2250,7 @@ function nextBossTurn() {
 function bossAttack(weaponId) {
     if (state.eventStatus !== 'BOSS') return;
     if (weaponId === 'fist') {
-        addLog('使える武器がない！素手ではホルゼインに傷ひとつ付けられない…', 'danger');
+        addLog('使える武器も回避手段もない…ホルゼインの攻撃を受けるしかない！', 'danger');
     } else {
         const weapon = WEAPONS[weaponId];
         if (!weapon || !hasItem(weaponId)) return;
@@ -2337,8 +2337,9 @@ function renderBossButtons(panel) {
         btn.classList.add('disabled:opacity-40', 'disabled:cursor-not-allowed');
         panel.appendChild(btn);
     });
-    if (usable === 0) panel.appendChild(createActionButton('👊 素手で抵抗する (ダメージを与えられない)', () => bossAttack('fist'), 'bg-red-900 hover:bg-red-800'));
     const canEvade = hasItem('flare') || hasItem('extinguisher') || hasItem('bear_trap');
+    // ボス戦は逃げられないので、武器も回避アイテムもない時だけ攻撃を受けるしかない
+    if (usable === 0 && !canEvade) panel.appendChild(createActionButton('😣 なすすべがない… (攻撃を受ける)', () => bossAttack('fist'), 'bg-red-900 hover:bg-red-800'));
     const evadeBtn = createActionButton(canEvade ? '🛡️ 避ける (アイテムで回避・キャンセル)' : '🛡️ 避ける (発煙筒・消火器・トラバサミが必要)', () => toggleBossEvadeMenu(true), 'bg-blue-800 hover:bg-blue-700');
     evadeBtn.disabled = !canEvade;
     evadeBtn.classList.add('disabled:opacity-40', 'disabled:cursor-not-allowed');
@@ -2610,10 +2611,6 @@ function renderActionButtons() {
             btn.classList.add('disabled:opacity-40', 'disabled:cursor-not-allowed');
             panel.appendChild(btn);
         });
-        // 使える武器がない時だけ素手で抵抗（大群には不可）
-        if (usableCount === 0 && !(enemy.immuneTo && enemy.immuneTo.includes('fist'))) {
-            panel.appendChild(createActionButton('👊 素手で抵抗する (倒せない・反撃を受ける)', () => executeFight('fist'), 'bg-red-900 hover:bg-red-800'));
-        }
         const fleeLabel = isTrapArmed() ? '🏃 逃げる (🪤トラバサミで100%成功)' : `🏃 逃げる (${Math.round(getFleeChance() * 100)}%で成功)`;
         const fleeBtn = createActionButton(fleeLabel, () => executeFlee(), 'bg-blue-800 hover:bg-blue-700');
         
