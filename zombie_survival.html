@@ -475,7 +475,7 @@ const ITEM_DB = {
     'handgun': { id: 'handgun', name: 'ハンドガン', w: 2, h: 1, type: 'weapon', color: 'bg-blue-800', border: 'border-blue-500', icon: '🔫', desc: '標準的な拳銃。戦闘時、弾薬を1発消費して確実に撃破する。', metal: true },
     'shotgun': { id: 'shotgun', name: 'ショットガン', w: 3, h: 1, type: 'weapon', color: 'bg-red-950', border: 'border-red-600', icon: '💥', desc: '散弾銃。弾薬1発でハンドガン3発分の威力。ブルートやミュータントも一撃。大群には効かない。イベントでのみ入手。', eventOnly: true, metal: true },
     'rocket_launcher': { id: 'rocket_launcher', name: 'ロケットランチャー', w: 2, h: 3, type: 'weapon', color: 'bg-orange-950', border: 'border-orange-500', icon: '🚀', desc: 'どんな敵も一撃で吹き飛ばす。ゾンビの大群を倒せる唯一の武器。撃つと使い切り(弾薬不要)。イベントでのみ入手。', weight: 0.3, eventOnly: true, metal: true },
-    'ammo': { id: 'ammo', name: '弾薬(2~3発)', w: 1, h: 1, type: 'ammo', color: 'bg-yellow-900', border: 'border-yellow-500', icon: '🟡', count: 3, maxCount: 12, stackable: true, desc: '銃の射撃に必要な弾丸。拾うと2~3発手に入る。1マスに12発までスタック可能。' },
+    'ammo': { id: 'ammo', name: '弾薬(5発)', w: 1, h: 1, type: 'ammo', color: 'bg-yellow-900', border: 'border-yellow-500', icon: '🟡', count: 5, maxCount: 12, stackable: true, desc: '銃の射撃に必要な弾丸。拾うと5発手に入る。1マスに12発までスタック可能。' },
     'bandage': { id: 'bandage', name: '包帯', w: 2, h: 1, type: 'heal', color: 'bg-emerald-900', border: 'border-emerald-500', icon: '🩹', desc: '使用するとHPを40回復する。' },
     'medkit': { id: 'medkit', name: '救急箱', w: 2, h: 2, type: 'heal', color: 'bg-emerald-800', border: 'border-emerald-400', icon: '🧰', desc: '重傷を治療する。使用するとHPを80回復する。' },
     'antibiotics': { id: 'antibiotics', name: '抗生剤', w: 1, h: 1, type: 'heal', color: 'bg-purple-900', border: 'border-purple-500', icon: '💊', desc: '体内のウイルス増殖を抑え、汚染度を35%低下させる。' },
@@ -502,7 +502,8 @@ const SELL_PRICES = {
     camera: 7, raw_meat: 4, gas_mask: 10,
     shotgun: 15, rocket_launcher: 20, bear_trap: 10, running_shoes: 10
 };
-const SHOP_AMMO_PACK = 3;          // ショップの弾薬は3発セットで販売
+const AMMO_PER_PICKUP = 5;         // 弾薬を手に入れた時の発数（どこで手に入れても一律）
+const SHOP_AMMO_PACK = AMMO_PER_PICKUP; // ショップの弾薬も5発セットで販売
 const KILL_REWARD = 3;             // ゾンビ1体撃破の報酬 (G)
 const BACKPACK_PRICE = 30;         // 拡張バックパックの価格 (G)
 const SHOP_SLOTS = 3;              // 店頭に並ぶランダム商品の数
@@ -601,7 +602,7 @@ function autoAddItemToInventory(itemDbId, customCount = null) {
     const baseData = ITEM_DB[itemDbId];
     if (!baseData) return false;
 
-    let addCount = customCount !== null ? customCount : (baseData.id === 'ammo' ? Math.floor(Math.random() * 2) + 2 : (baseData.count || 1));
+    let addCount = customCount !== null ? customCount : (baseData.id === 'ammo' ? AMMO_PER_PICKUP : (baseData.count || 1));
 
     // 弾薬などスタック可能な場合の処理
     if (baseData.stackable) {
@@ -2065,7 +2066,7 @@ function runHappening(id) {
         case 'shutter':
             presentChoice(`${P} 🚪 防火シャッターが降りて道が塞がれている。奥に物資が見える…`, [
                 crowbarOption('バールでこじ開ける', () => offerItems(
-                    [{ id: 'canned_food' }, { id: 'ammo', giveCount: 3 }, { id: 'bandage' }],
+                    [{ id: 'canned_food' }, { id: 'ammo', giveCount: AMMO_PER_PICKUP }, { id: 'bandage' }],
                     'シャッターをこじ開けた！')),
                 leaveOption()
             ]);
@@ -2151,7 +2152,7 @@ function runHappening(id) {
             return;
         case 'cop_corpse':
             if (Math.random() < 0.7) {
-                offerItems([{ id: 'ammo', giveCount: 10 }], `${P} 👮 警察官の死体を発見。ホルスターに弾薬が残っている。`);
+                offerItems([{ id: 'ammo', giveCount: AMMO_PER_PICKUP }], `${P} 👮 警察官の死体を発見。ホルスターに弾薬が残っている。`);
             } else {
                 triggerEncounter(null, `${P} 👮 警察官の死体を調べようとしたら、起き上がった！`);
             }
@@ -2173,7 +2174,7 @@ function runHappening(id) {
             return;
         case 'armory':
             presentChoice(`${P} 🚪 施錠された部屋を発見した。`, [
-                crowbarOption('バールでこじ開ける', () => offerItems([{ id: 'shotgun' }, { id: 'ammo', giveCount: 5 }], '中は武器庫だった！')),
+                crowbarOption('バールでこじ開ける', () => offerItems([{ id: 'shotgun' }, { id: 'ammo', giveCount: AMMO_PER_PICKUP }], '中は武器庫だった！')),
                 leaveOption()
             ]);
             return;
