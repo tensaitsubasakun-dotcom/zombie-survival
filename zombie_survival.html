@@ -750,8 +750,32 @@ function getInventoryCellSize() {
     return Math.max(28, Math.min(44, fit));
 }
 
+// 重ねられるアイテム（弾薬）を、上限(12発)ずつに詰め直す
+// 例) 4発と8発 → 12発の1マスに。余ったマスはなくなる
+function mergeStacks(list) {
+    const ids = [...new Set(list.filter(i => i.stackable).map(i => i.id))];
+    for (const id of ids) {
+        const stacks = list.filter(i => i.id === id)
+            .sort((a, b) => (a.y - b.y) || (a.x - b.x)); // 左上のマスから詰める
+        if (stacks.length < 2) continue;
+        const max = stacks[0].maxCount;
+        let total = stacks.reduce((sum, i) => sum + (i.count || 0), 0);
+        for (const st of stacks) {
+            st.count = Math.min(max, total);
+            total -= st.count;
+        }
+        for (const st of stacks) {
+            if (st.count <= 0) {
+                list.splice(list.indexOf(st), 1);
+                if (state.selectedInstanceId === st.instanceId) state.selectedInstanceId = null;
+            }
+        }
+    }
+}
+
 // インベントリグリッド描画
 function renderInventoryGrid() {
+    mergeStacks(state.inventory);
     const container = document.getElementById('inventory-grid');
     container.style.gridTemplateColumns = `repeat(${state.cols}, minmax(0, 1fr))`;
     container.innerHTML = '';
@@ -789,6 +813,7 @@ function renderInventoryGrid() {
 
 // スタッシュ (保管庫) 描画
 function renderStashGrid() {
+    mergeStacks(state.stash);
     const container = document.getElementById('stash-grid');
     const cols = 5, rows = 4;
     container.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
@@ -1653,10 +1678,13 @@ function getAmmoCount() {
 }
 
 function consumeAmmo() {
-    const ammoItem = state.inventory.find(i => i.id === 'ammo' && i.count > 0);
-    if (!ammoItem) return false;
+    // いちばん少ないマスから使う（満タンのマスを崩さない）
+    const stacks = state.inventory.filter(i => i.id === 'ammo' && i.count > 0);
+    if (!stacks.length) return false;
+    const ammoItem = stacks.reduce((a, b) => (b.count < a.count ? b : a));
     ammoItem.count--;
     if (ammoItem.count <= 0) state.inventory = state.inventory.filter(i => i !== ammoItem);
+    mergeStacks(state.inventory);
     return true;
 }
 
