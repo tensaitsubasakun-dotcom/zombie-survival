@@ -1484,7 +1484,7 @@ const ENEMY_SPRITES = {
     spreader: { img: (() => { const img = new Image(); img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAB6klEQVR4XsWWsU4CQRCGF2Ps7SgUqagwFNT6AtaWvIKxs+JRSEwobYUH0JrCaGFsRLTwGWww/+Gcc8Puzsx5iV9CIMDt/8/O7OyE8M+0vPrtXmfNn/l8WbnX4Ox6DED8bNQPp8NuuFssi0dn07D+i4kdjwEwGc8Lcbw3gcsAIm33OmG4+Aqvz9dN6PsMEIvhXji/uGnEgKkGZOE93LfC4OS3Fvnv3npQKxiLH3SPy2i5MIAZycfy0Wwka4CLkzDyjxRIpBGrCVMKeNQQxzEk6DjiP7Hd0EgaoOi5OBeOUU1PkTa1R2SPoUU8ZUrWSgpTH0iJ0PYTqA8vJgMptJRYiBqgnu9Fng7cG7KHSNQdaCLKHFsGePSz6VO4urzdyrUGniO0XVB3wNtaicl43iIjORMVAzJ6EsdCsuIt4HnNRGkgJc6BCTJCnzVjmonCAJ90QGrL6JzHROk3RMzTpq1dSQEKDvAiAhQFjhmEZMNJXVAEpVCuC8rbEE5/Jp5o/5bXcozUDZhbW50HKEU0E3QOj8Lq/a2iz7+zXsOEegw5uGD2u5tpGEJ4AWnIg9kAxGXukTIyURfTQLIpwrAOo35dnSTmHQB1Jh4Nl4Ec1gFE4jJQVySHqQas88HGoG0WJMx9QEZB7TY2cHhu0G8x1h2iEsSNugAAAABJRU5ErkJggg=='; return img; })(),
               bottom: 31, center: 15, swaySpeed: 0.04, bobSpeed: 0.05, bobHeight: 2 }, // 膨れたスプレッダー：重たくゆっくり
     brute: { img: (() => { const img = new Image(); img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAB4klEQVR4XsWXsUoDQRCGJ2IpFlYiGFNZBYSkUkgewIhW2vkEvoJa5B0sre4JBJMHMGCnIElldUoQKwVJH/njTW7Z29uZvVzwAxGSYebf2ZnZCdE/U9HG39ytTvNsP1/f1X5sVjUCELxzXqd2s5Yxf3iKqRfRtKgIUQAHBwhWNisah7dXfY1ZIbwZSE9fL+Rcg5iBl0GFLk/P6PDuy+mvF42WV4RJYU33j4d0s76lOVAwYgYgAsEvfj5yneOq+C9Ugbd/zd5HG5qYLbl2/UyTbiNpydHMTNuWuUWY1/toRdc8gIh2tzHXqJ0NzisIDe4CGfNNT0asgWXjnQMhk49rIBSvAPOuWYwtCvOhf7JBZI1p7XxwCkAFo4js08Cp/ShNmjVqL/BOiDWALLiqvizE11BTB7aNNv1AFMCnN4P4RIUEVwlwBbOvxCdIwpsBvITMOB5mChBwcNjCRjuCGfEKqts7M1s4NwOafMdY1d6kwzoRu8CGs2L/L4qYAeagdUS96D7Jxt+n45hmnwPOFFHYguoVsNfCLEoX0U6tPq/ydF1Lv38chG9HYgZc49jE1aYhBNdA2YgZMHvcNWQWmQFAzID0FkjfSwRlwMWiGcgI4DXKXkJNNKuWlsxWLDnHqC3zl/IvPWnnnUnEXEUAAAAASUVORK5CYII='; return img; })(),
-              bottom: 31, center: 14, swaySpeed: 0.035, bobSpeed: 0.045, bobHeight: 1 }  // ブルート：どっしり重たく
+              bottom: 31, center: 14, swaySpeed: 0.035, bobSpeed: 0.045, bobHeight: 1, scale: 3 }  // ブルート：どっしり重たく、普通のゾンビの1.5倍
 };
 
 function drawPixelZombie(x, y, tick, type = 'normal') {
@@ -1495,7 +1495,7 @@ function drawPixelZombie(x, y, tick, type = 'normal') {
     const centerX = x + 10 - advance;
     const feetY = y - 8;
     if (!sp.img.complete) return;
-    const scale = SPRITE_SCALE;
+    const scale = sp.scale || SPRITE_SCALE; // 敵ごとに大きさを変えられる
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(sp.img, Math.round(centerX - sp.center * scale), Math.round(feetY - sp.bottom * scale + bob), 32 * scale, 32 * scale);
 }
