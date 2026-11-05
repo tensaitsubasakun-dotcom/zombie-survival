@@ -2752,6 +2752,11 @@ function renderShelterPanels() {
     renderShelterItemInfo();
 }
 
+// 次に向かうステージ名 → そのセーフルームのショップに必ず並ぶ商品
+const SHOP_GUARANTEED_BEFORE_STAGE = {
+    '病院': ['gas_mask'],
+};
+
 function rollShopStock() {
     const pool = Object.keys(SELL_PRICES).filter(id => ITEM_DB[id] && (!ITEM_DB[id].eventOnly || ITEM_DB[id].shopSellable) && id !== 'ammo'); // 弾薬は常設なので除く
     // 重複なしでランダムに3つ
@@ -2759,7 +2764,11 @@ function rollShopStock() {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-    state.shopStock = pool.slice(0, SHOP_SLOTS).map(id => ({ id, sold: false }));
+    // 次のステージで必ず並べる商品（例：病院の直前はガスマスク確定）
+    const nextStage = STAGES[Math.min(Math.floor(state.phase / 10), STAGES.length - 1)];
+    const guaranteed = (SHOP_GUARANTEED_BEFORE_STAGE[nextStage && nextStage.name] || []).filter(id => pool.includes(id));
+    const picks = [...guaranteed, ...pool.filter(id => !guaranteed.includes(id))].slice(0, SHOP_SLOTS);
+    state.shopStock = picks.map(id => ({ id, sold: false }));
 }
 
 function renderShopPanel() {
