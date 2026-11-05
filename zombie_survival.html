@@ -2753,7 +2753,7 @@ function renderShelterPanels() {
 }
 
 function rollShopStock() {
-    const pool = Object.keys(SELL_PRICES).filter(id => ITEM_DB[id] && (!ITEM_DB[id].eventOnly || ITEM_DB[id].shopSellable));
+    const pool = Object.keys(SELL_PRICES).filter(id => ITEM_DB[id] && (!ITEM_DB[id].eventOnly || ITEM_DB[id].shopSellable) && id !== 'ammo'); // 弾薬は常設なので除く
     // 重複なしでランダムに3つ
     for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -2794,6 +2794,12 @@ function renderShopPanel() {
     addRow('🎒', '拡張バックパック【限定】', `カバン+1列(${state.rows}マス) / 1ゲーム1回`, BACKPACK_PRICE,
         state.backpackBought ? '購入済' : state.gold < BACKPACK_PRICE ? 'G不足' : null,
         () => buyBackpack(), true, 'backpack');
+
+    // 常設：弾薬（何度でも買える）
+    const ammoPrice = getBuyPrice('ammo');
+    addRow(ITEM_DB.ammo.icon, `弾薬(${SHOP_AMMO_PACK}発)【常設】`, 'サイズ 1×1 / 何度でも買える', ammoPrice,
+        state.gold < ammoPrice ? 'G不足' : null,
+        () => buyAmmo(), false, 'ammo');
 
     // ランダム商品
     state.shopStock.forEach((slot, idx) => {
@@ -2851,6 +2857,15 @@ function getShopPreview(key) {
             buy: () => buyBackpack()
         };
     }
+    if (key === 'ammo') {
+        const price = getBuyPrice('ammo');
+        return {
+            icon: ITEM_DB.ammo.icon, name: `弾薬(${SHOP_AMMO_PACK}発)【常設】`, size: '1×1', price,
+            desc: `${ITEM_DB.ammo.desc} ショップにいつも並んでいて、何度でも買える。`,
+            disabledReason: state.gold < price ? 'G不足' : null,
+            buy: () => buyAmmo()
+        };
+    }
     const idx = Number(String(key).replace('slot', ''));
     const slot = state.shopStock[idx];
     if (!slot) return null;
@@ -2862,6 +2877,21 @@ function getShopPreview(key) {
         disabledReason: slot.sold ? '売切' : state.gold < price ? 'G不足' : null,
         buy: () => buyShopItem(idx)
     };
+}
+
+// 常設の弾薬を買う（売り切れにならない）
+function buyAmmo() {
+    const price = getBuyPrice('ammo');
+    if (state.gold < price) return;
+    if (!autoAddItemToInventory('ammo', SHOP_AMMO_PACK)) {
+        addLog('カバンに弾薬を入れる空きがない！整理するか、保管庫に預けてから買おう。', 'danger');
+        AudioFX.play('hit');
+        return;
+    }
+    state.gold -= price;
+    addLog(`🛒 弾薬(${SHOP_AMMO_PACK}発)を ${price}G で購入した。`, 'success');
+    AudioFX.play('item');
+    afterShopChange();
 }
 
 function buyShopItem(idx) {
