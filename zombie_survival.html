@@ -273,11 +273,12 @@
 
             <!-- 拠点（セーフルーム）時：スタッシュ（保管庫）パネル（初期非表示） -->
             <div id="stash-panel" class="h-full hidden flex-col justify-between">
-                <div class="flex justify-between items-center mb-1">
+                <div class="flex flex-wrap justify-between items-center gap-1 mb-1">
                     <span class="text-xs md:text-sm text-cyan-300 font-bold whitespace-nowrap">📦 <span class="hidden md:inline">拠点</span>保管庫<span class="hidden md:inline"> (このゲーム中のみ保管)</span><span class="md:hidden text-[10px] text-cyan-500"> このゲーム中のみ</span></span>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap justify-end items-center gap-1 md:gap-2 ml-auto">
                         <span class="hidden md:inline text-xs text-slate-400">5×4マス</span>
                         <button id="btn-stash-rotate" onclick="rotateSelectedItem()" disabled class="whitespace-nowrap pixel-btn bg-slate-800 hover:bg-slate-700 text-[11px] px-2 py-0.5 text-slate-200 rounded disabled:opacity-30">🔄 回転</button>
+                        <button id="btn-stash-sell" onclick="sellSelectedItem()" disabled class="whitespace-nowrap pixel-btn bg-yellow-700 hover:bg-yellow-600 text-[11px] px-2 py-0.5 text-white rounded disabled:opacity-30">💱 売る</button>
                         <button id="btn-stash-drop" onclick="dropSelectedItem()" disabled class="whitespace-nowrap pixel-btn bg-red-900 hover:bg-red-800 text-[11px] px-2 py-0.5 text-white rounded disabled:opacity-30">🗑️ 破棄</button>
                     </div>
                 </div>
@@ -483,7 +484,8 @@ const SELL_PRICES = {
     handgun: 10, ammo: 2, flare: 5, bandage: 5, medkit: 10, stethoscope: 3,
     car_battery: 10, crowbar: 7, canned_food: 3, dog_food: 2, flashlight: 6,
     camera: 7, raw_meat: 4, gas_mask: 10,
-    shotgun: 15, rocket_launcher: 20, bear_trap: 10, running_shoes: 10
+    shotgun: 15, rocket_launcher: 20, bear_trap: 10, running_shoes: 10,
+    antibiotics: 2
 };
 const AMMO_PER_PICKUP = 5;         // 弾薬を手に入れた時の発数（どこで手に入れても一律）
 const SHOP_AMMO_PACK = AMMO_PER_PICKUP; // ショップの弾薬も5発セットで販売
@@ -954,6 +956,12 @@ function selectItem(instanceId, rerender = true) {
     if (item && item.w === item.h) btnRotate.disabled = true;
     const stashDrop = document.getElementById('btn-stash-drop');
     if (stashDrop) stashDrop.disabled = !item;
+    const stashSell = document.getElementById('btn-stash-sell');
+    if (stashSell) {
+        const price = item ? getSellPrice(item) : null;
+        stashSell.disabled = price === null;
+        stashSell.textContent = price === null ? '💱 売る' : `💱 売る(${price}G)`;
+    }
     const hint = document.getElementById('inv-hint');
     if (hint) hint.classList.toggle('hidden', !item);
 
@@ -2552,10 +2560,11 @@ function renderShopPanel() {
 
     // 売却欄：カバンで選んだアイテムを売る
     const sell = document.getElementById('shop-sell');
-    const item = state.inventory.find(i => i.instanceId === state.selectedInstanceId);
+    const selected = findSelectedSellable();
+    const item = selected ? selected.item : null;
     sell.innerHTML = '';
     if (!item) {
-        sell.innerHTML = '<span class="text-slate-400">💱 売却：カバンのアイテムをクリックして選ぶと売れます</span>';
+        sell.innerHTML = '<span class="text-slate-400">💱 売却：カバンか保管庫のアイテムを選ぶと売れます</span>';
         return;
     }
     const price = getSellPrice(item);
@@ -2603,16 +2612,30 @@ function buyBackpack() {
     afterShopChange();
 }
 
+// 選択中のアイテム（カバン、または拠点にいる時は保管庫）を探す
+function findSelectedSellable() {
+    let list = state.inventory;
+    let idx = list.findIndex(i => i.instanceId === state.selectedInstanceId);
+    if (idx === -1 && state.eventStatus === 'SHELTER') {
+        list = state.stash;
+        idx = list.findIndex(i => i.instanceId === state.selectedInstanceId);
+    }
+    return idx === -1 ? null : { list, idx, item: list[idx] };
+}
+
 function sellSelectedItem() {
-    const idx = state.inventory.findIndex(i => i.instanceId === state.selectedInstanceId);
-    if (idx === -1) return;
-    const item = state.inventory[idx];
+    if (state.eventStatus !== 'SHELTER') return;
+    const found = findSelectedSellable();
+    if (!found) return;
+    const { list, idx, item } = found;
     const price = getSellPrice(item);
     if (price === null) return;
-    state.inventory.splice(idx, 1);
+    list.splice(idx, 1);
+    if (list === state.stash) saveStash();
     state.gold += price;
     state.selectedInstanceId = null;
-    addLog(`💱 「${item.name}」を ${price}G で売却した。`, 'success');
+    selectItem(null, false);
+    addLog(`💱 「${item.name}」を${list === state.stash ? '保管庫から' : ''} ${price}G で売却した。`, 'success');
     AudioFX.play('item');
     afterShopChange();
 }
