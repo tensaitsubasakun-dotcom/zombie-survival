@@ -485,10 +485,10 @@ const ITEM_DB = {
     'extinguisher': { id: 'extinguisher', name: '消火器', w: 2, h: 1, type: 'utility', color: 'bg-red-800', border: 'border-red-400', icon: '🧯', desc: '戦闘中に使うとゾンビを100%回避できる。3回まで使用可能。売却不可・非売品。', uses: 3, noRandomDrop: true, metal: true },
     'running_shoes': { id: 'running_shoes', name: 'ランニングシューズ', w: 1, h: 2, type: 'utility', color: 'bg-sky-800', border: 'border-sky-400', icon: '👟', desc: '所持しているだけで回避率が10%上昇する。', noRandomDrop: true },
     'guard_key': { id: 'guard_key', name: '看守の鍵', w: 1, h: 1, type: 'utility', color: 'bg-amber-800', border: 'border-amber-400', icon: '🗝️', desc: '「使用する」で刑務所の「独房のロックダウン」を解除できる。解除するまでフェーズが進まない。', noRandomDrop: true, metal: true },
-    'car_battery': { id: 'car_battery', name: '車のバッテリー', w: 2, h: 2, type: 'special', color: 'bg-slate-900', border: 'border-yellow-600', icon: '🔋', desc: '重く逃走率が-10%下がる重荷。使い道はなく、ショップで10Gで売れる売却専用アイテム。', metal: true }
+    'car_battery': { id: 'car_battery', name: '車のバッテリー', w: 2, h: 2, type: 'special', color: 'bg-slate-900', border: 'border-yellow-600', icon: '🔋', desc: '重く逃走率が-10%下がる重荷。使い道はなく、ショップで15Gで売れる売却専用アイテム。', metal: true }
 };
 
-// 売却相場 (G)。弾薬は1発あたりの価格。ショップの販売価格はこの2倍
+// 相場 (G)。弾薬は1発あたりの価格。ショップの販売価格はこの2倍、売却価格は販売価格の3/4（端数切り捨て）
 const SELL_PRICES = {
     handgun: 10, ammo: 2, flare: 5, bandage: 5, medkit: 10, stethoscope: 3,
     car_battery: 10, crowbar: 7, canned_food: 3, dog_food: 2, flashlight: 6,
@@ -503,10 +503,13 @@ const BACKPACK_PRICE = 30;         // 拡張バックパックの価格 (G)
 const SHOP_SLOTS = 3;              // 店頭に並ぶランダム商品の数
 const SHELTER_HP_HEAL = 20;        // セーフルーム到着時のHP回復量
 
+const SELL_RATE = 0.75;             // 売却価格 = 販売価格の3/4
+
 function getSellPrice(item) {
     const base = SELL_PRICES[item.id];
     if (base === undefined) return null; // 相場が決まっていないアイテムは売れない
-    return item.id === 'ammo' ? base * (item.count || 0) : base;
+    const unit = Math.floor(base * 2 * SELL_RATE);
+    return item.id === 'ammo' ? unit * (item.count || 0) : unit;
 }
 
 function getBuyPrice(itemId) {
