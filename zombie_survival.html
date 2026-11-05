@@ -558,6 +558,7 @@ let state = {
     nextEncounterBonus: 0,      // 次のフェーズだけの遭遇率上乗せ
     trapArmedStage: null,       // トラバサミを設置したステージ
     choice: null,               // 選択肢ハプニングの内容
+    pendingDeadlyUse: null,     // 使うとHPが0以下になるアイテムの確認待ち（instanceId）
     boss: null,                 // ボス戦の状態
     currentEvasion: 0.5,
     currentEncounter: 0.2
@@ -927,6 +928,7 @@ function handleCellClick(x, y, locationType = 'inventory') {
 
 // アイテム選択
 function selectItem(instanceId, rerender = true) {
+    if (instanceId !== state.pendingDeadlyUse) state.pendingDeadlyUse = null;
     state.selectedInstanceId = instanceId;
     if (instanceId) state.shopPreview = null;
     const item = state.inventory.find(i => i.instanceId === instanceId) || state.stash.find(i => i.instanceId === instanceId);
@@ -947,6 +949,8 @@ function selectItem(instanceId, rerender = true) {
         btnRotate.disabled = false;
         btnUse.disabled = !getUseLabel(item);
         btnUse.textContent = getUseLabel(item) || '✨ 使用する';
+        btnUse.classList.toggle('bg-red-700', state.pendingDeadlyUse === item.instanceId);
+        btnUse.classList.toggle('bg-emerald-700', state.pendingDeadlyUse !== item.instanceId);
         btnDrop.disabled = false;
     } else {
         titleEl.textContent = 'アイテムを選択してください';
@@ -981,9 +985,18 @@ function selectItem(instanceId, rerender = true) {
     if (state.eventStatus === 'SHELTER') renderShelterPanels();
 }
 
+// 使うとHPが減るアイテム（減る量）
+const ITEM_HP_COST = { raw_meat: 30 };
+// 使うとHPが0以下になる＝使う前に確認が必要
+function isDeadlyToUse(item) {
+    const cost = item && ITEM_HP_COST[item.id];
+    return !!cost && state.hp - cost <= 0;
+}
+
 // アイテムを「使う」ボタンの表示名（使えないアイテムは null）
 function getUseLabel(item) {
     if (!item) return null;
+    if (isDeadlyToUse(item) && state.pendingDeadlyUse === item.instanceId) return '⚠️ それでも使う';
     if (item.id === 'bear_trap') return '🪤 設置する';
     if (item.id === 'guard_key') return '🗝️ 扉を開ける';
     if (item.type === 'heal' || item.type === 'food') return '✨ 使用する';
@@ -1046,7 +1059,8 @@ function renderShelterItemInfo() {
     const label = getUseLabel(item);
     if (label) {
         const btn = document.createElement('button');
-        btn.className = 'pixel-btn bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-0.5 rounded text-[11px] whitespace-nowrap shrink-0';
+        const confirming = state.pendingDeadlyUse === item.instanceId;
+        btn.className = `pixel-btn ${confirming ? 'bg-red-700 hover:bg-red-600' : 'bg-emerald-700 hover:bg-emerald-600'} text-white px-2 py-0.5 rounded text-[11px] whitespace-nowrap shrink-0`;
         btn.textContent = label;
         btn.onclick = () => useSelectedItem();
         row.appendChild(btn);
@@ -1093,6 +1107,15 @@ function useSelectedItem() {
 
     const item = list[idx];
     if (!getUseLabel(item)) return;
+    // HPが0以下になるアイテムは、1回目は確認だけ（もう一度押すと使う）
+    if (isDeadlyToUse(item) && state.pendingDeadlyUse !== item.instanceId) {
+        state.pendingDeadlyUse = item.instanceId;
+        addLog(`⚠️ 「${item.name}」を使うとHPが${ITEM_HP_COST[item.id]}減り、HPが0以下になって死んでしまう！ 本当に使うなら、もう一度ボタンを押してください。`, 'danger');
+        AudioFX.play('alarm');
+        selectItem(item.instanceId);
+        return;
+    }
+    state.pendingDeadlyUse = null;
     if (item.id === 'guard_key') {
         useGuardKey(); // 鍵の消費・表示更新は useGuardKey 内で行う
         state.selectedInstanceId = null;
