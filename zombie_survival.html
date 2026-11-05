@@ -928,6 +928,7 @@ function handleCellClick(x, y, locationType = 'inventory') {
 // アイテム選択
 function selectItem(instanceId, rerender = true) {
     state.selectedInstanceId = instanceId;
+    if (instanceId) state.shopPreview = null;
     const item = state.inventory.find(i => i.instanceId === instanceId) || state.stash.find(i => i.instanceId === instanceId);
     
     const titleEl = document.getElementById('item-detail-title');
@@ -999,8 +1000,35 @@ function renderShelterItemInfo() {
     const item = state.inventory.find(i => i.instanceId === state.selectedInstanceId)
               || state.stash.find(i => i.instanceId === state.selectedInstanceId);
     box.innerHTML = '';
+
+    // ショップの商品を見ている時は、その商品の効果を表示
+    const preview = !item && state.shelterView === 'shop' && state.shopPreview ? getShopPreview(state.shopPreview) : null;
+    if (preview) {
+        const head = document.createElement('div');
+        head.className = 'flex items-center justify-between gap-2';
+        head.innerHTML = `<span class="font-bold text-cyan-300 truncate">🛒 ${preview.icon} ${preview.name}</span>
+            <span class="text-[10px] text-slate-400 whitespace-nowrap">商品 / サイズ ${preview.size} / <span class="text-yellow-300 font-bold">${preview.price}G</span></span>`;
+        box.appendChild(head);
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-2 mt-0.5';
+        const desc = document.createElement('p');
+        desc.className = 'text-[11px] text-slate-300 leading-snug';
+        desc.textContent = preview.desc;
+        row.appendChild(desc);
+        const btn = document.createElement('button');
+        btn.className = 'pixel-btn bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-0.5 rounded text-[11px] whitespace-nowrap shrink-0 disabled:opacity-40 disabled:cursor-not-allowed';
+        btn.textContent = preview.disabledReason || `購入(${preview.price}G)`;
+        btn.disabled = !!preview.disabledReason;
+        btn.onclick = () => preview.buy();
+        row.appendChild(btn);
+        box.appendChild(row);
+        return;
+    }
+
     if (!item) {
-        box.innerHTML = '<span class="text-slate-400">🔍 カバンか保管庫のアイテムを選ぶと、内容の確認と使用ができます</span>';
+        box.innerHTML = state.shelterView === 'shop'
+            ? '<span class="text-slate-400">🔍 商品をタップすると効果を確認できます。カバン・保管庫のアイテムを選ぶと内容の確認と使用ができます</span>'
+            : '<span class="text-slate-400">🔍 カバンか保管庫のアイテムを選ぶと、内容の確認と使用ができます</span>';
         return;
     }
     const where = state.stash.includes(item) ? '保管庫' : 'カバン';
@@ -2543,6 +2571,7 @@ function enterShelter() {
 
     // ショップの品揃えを更新（訪れるたびに入れ替わる）
     rollShopStock();
+    state.shopPreview = null;
     state.shelterView = 'stash';
     document.getElementById('item-detail-panel').classList.add('hidden');
     renderShelterPanels();
@@ -2590,21 +2619,25 @@ function renderShopPanel() {
     const list = document.getElementById('shop-list');
     list.innerHTML = '';
 
-    const addRow = (icon, name, sub, price, disabledReason, onBuy, highlight) => {
+    const addRow = (icon, name, sub, price, disabledReason, onBuy, highlight, previewKey) => {
         const row = document.createElement('div');
-        row.className = `flex items-center gap-2 px-1.5 py-0.5 rounded border ${highlight ? 'border-yellow-500 bg-yellow-950/40' : 'border-slate-700 bg-slate-900'}`;
+        const previewing = state.shopPreview === previewKey;
+        row.className = `flex items-center gap-2 px-1.5 py-0.5 rounded border cursor-pointer ${previewing ? 'ring-2 ring-cyan-400 ' : ''}${highlight ? 'border-yellow-500 bg-yellow-950/40' : 'border-slate-700 bg-slate-900 hover:border-cyan-600'}`;
         row.innerHTML = `
             <span class="text-base leading-none">${icon}</span>
             <div class="flex-1 min-w-0 truncate">
                 <span class="font-bold text-slate-100">${name}</span>
                 <span class="text-[10px] text-slate-400 ml-1">${sub}</span>
+                <span class="text-[10px] text-cyan-400 ml-1">ⓘ</span>
             </div>
             <span class="text-yellow-300 font-bold whitespace-nowrap">${price}G</span>`;
+        // 行をタップすると、上の情報欄に効果を表示
+        row.onclick = () => previewShopItem(previewKey);
         const btn = document.createElement('button');
         btn.className = 'pixel-btn bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-0.5 rounded text-[11px] whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed';
         btn.textContent = disabledReason || '購入';
         btn.disabled = !!disabledReason;
-        btn.onclick = onBuy;
+        btn.onclick = (e) => { e.stopPropagation(); onBuy(); };
         row.appendChild(btn);
         list.appendChild(row);
     };
@@ -2612,7 +2645,7 @@ function renderShopPanel() {
     // ショップ限定：拡張バックパック（常設・1ゲーム1回）
     addRow('🎒', '拡張バックパック【限定】', `カバン+1列(${state.rows}マス) / 1ゲーム1回`, BACKPACK_PRICE,
         state.backpackBought ? '購入済' : state.gold < BACKPACK_PRICE ? 'G不足' : null,
-        () => buyBackpack(), true);
+        () => buyBackpack(), true, 'backpack');
 
     // ランダム商品
     state.shopStock.forEach((slot, idx) => {
@@ -2621,7 +2654,7 @@ function renderShopPanel() {
         const name = slot.id === 'ammo' ? `弾薬(${SHOP_AMMO_PACK}発)` : data.name;
         addRow(data.icon, name, `サイズ ${data.w}×${data.h}`, price,
             slot.sold ? '売切' : state.gold < price ? 'G不足' : null,
-            () => buyShopItem(idx));
+            () => buyShopItem(idx), false, `slot${idx}`);
     });
 
     // 売却欄：カバンで選んだアイテムを売る
@@ -2648,6 +2681,39 @@ function renderShopPanel() {
         btn.onclick = () => sellSelectedItem();
         sell.appendChild(btn);
     }
+}
+
+// ショップの商品をタップした時：上の情報欄に効果を表示する
+function previewShopItem(key) {
+    state.shopPreview = key;
+    state.selectedInstanceId = null; // カバン・保管庫の選択は外す
+    selectItem(null, false);
+    AudioFX.play('click');
+    renderShopPanel();
+    renderShelterItemInfo();
+}
+
+// 商品の表示内容 { icon, name, size, price, desc, disabledReason, buy }
+function getShopPreview(key) {
+    if (key === 'backpack') {
+        return {
+            icon: '🎒', name: '拡張バックパック【限定】', size: '—', price: BACKPACK_PRICE,
+            desc: `カバンが横に1列(縦${state.rows}マス)広がる。1ゲームに1回だけ買える。`,
+            disabledReason: state.backpackBought ? '購入済' : state.gold < BACKPACK_PRICE ? 'G不足' : null,
+            buy: () => buyBackpack()
+        };
+    }
+    const idx = Number(String(key).replace('slot', ''));
+    const slot = state.shopStock[idx];
+    if (!slot) return null;
+    const data = ITEM_DB[slot.id];
+    const price = getBuyPrice(slot.id);
+    return {
+        icon: data.icon, name: slot.id === 'ammo' ? `弾薬(${SHOP_AMMO_PACK}発)` : data.name,
+        size: `${data.w}×${data.h}`, price, desc: data.desc,
+        disabledReason: slot.sold ? '売切' : state.gold < price ? 'G不足' : null,
+        buy: () => buyShopItem(idx)
+    };
 }
 
 function buyShopItem(idx) {
