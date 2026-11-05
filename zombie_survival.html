@@ -916,6 +916,58 @@ function tryMoveSelectedItem(x, y, locationType) {
     return true;
 }
 
+// ドラッグしたアイテムを別のアイテムの上に落とした時、2つの場所を入れ替える
+// cellX/cellY: 指を離したマス / x,y: ドラッグしたアイテムの左上が来るはずのマス
+function trySwapSelectedItem(cellX, cellY, x, y, locationType) {
+    if (!state.selectedInstanceId) return false;
+    if (locationType === 'stash' && state.eventStatus !== 'SHELTER') return false;
+    const inInventory = state.inventory.some(i => i.instanceId === state.selectedInstanceId);
+    if (!inInventory && state.eventStatus !== 'SHELTER') return false;
+
+    const srcList = inInventory ? state.inventory : state.stash;
+    const tgtList = locationType === 'inventory' ? state.inventory : state.stash;
+    const size = list => list === state.inventory ? { c: state.cols, r: state.rows } : { c: 5, r: 4 };
+    const A = srcList.find(i => i.instanceId === state.selectedInstanceId);
+    // 指を離したマスにあるアイテム（相手）
+    const B = tgtList.find(i => i !== A && cellX >= i.x && cellX < i.x + i.w && cellY >= i.y && cellY < i.y + i.h);
+    if (!A || !B) return false;
+
+    const tSize = size(tgtList), sSize = size(srcList);
+    const others = (list) => list.filter(i => i !== A && i !== B);
+    const nearestSpot = (list, item, fromX, fromY, dims, extra) => {
+        const placed = [...others(list), ...extra];
+        let best = null;
+        for (let yy = 0; yy <= dims.r - item.h; yy++) for (let xx = 0; xx <= dims.c - item.w; xx++) {
+            if (!canPlaceItem(placed, item, xx, yy, null, dims.c, dims.r)) continue;
+            const d = Math.abs(xx - fromX) + Math.abs(yy - fromY);
+            if (!best || d < best.d) best = { x: xx, y: yy, d };
+        }
+        return best;
+    };
+
+    // ドラッグしたアイテムは「相手の位置」→「落とした位置」の順で置けるか試す
+    for (const pos of [{ x: B.x, y: B.y }, { x, y }]) {
+        const aPlaced = { ...A, x: pos.x, y: pos.y };
+        if (!canPlaceItem(others(tgtList), A, pos.x, pos.y, null, tSize.c, tSize.r)) continue;
+        // 相手は、ドラッグしたアイテムの元の位置（入らなければその近く）へ
+        const extra = srcList === tgtList ? [aPlaced] : [];
+        const bSpot = nearestSpot(srcList, B, A.x, A.y, sSize, extra);
+        if (!bSpot) continue;
+
+        srcList.splice(srcList.indexOf(A), 1);
+        tgtList.splice(tgtList.indexOf(B), 1);
+        A.x = pos.x; A.y = pos.y; tgtList.push(A);
+        B.x = bSpot.x; B.y = bSpot.y; srcList.push(B);
+        AudioFX.play('click');
+        if (srcList === state.stash || tgtList === state.stash) saveStash();
+        renderInventoryGrid();
+        if (state.eventStatus === 'SHELTER') renderShelterPanels();
+        updateHUD();
+        return true;
+    }
+    return false;
+}
+
 // ドラッグ＆ドロップ
 function handleDropOnGrid(e, container, cellSize, locationType) {
     e.preventDefault();
@@ -931,7 +983,8 @@ function handleDropOnGrid(e, container, cellSize, locationType) {
     const y = cellY - (data.grabY || 0);
 
     state.selectedInstanceId = data.instanceId;
-    if (!tryMoveSelectedItem(x, y, locationType)) {
+    // 空いていればそこへ移動、別のアイテムの上なら場所を入れ替える
+    if (!tryMoveSelectedItem(x, y, locationType) && !trySwapSelectedItem(cellX, cellY, x, y, locationType)) {
         addLog('そこには置けません！', 'danger');
         selectItem(data.instanceId);
     } else {
