@@ -1338,7 +1338,7 @@ function renderCanvas() {
     if (state.eventStatus === 'ENCOUNTER' && state.currentEnemy && state.currentEnemy.big) {
         drawScaledZombie(330, 240, 2, animTick, null); // タイタンは2倍の大きさ
     } else if (state.eventStatus === 'ENCOUNTER') {
-        drawPixelZombie(320, 248, animTick); // 足元が地面(y=240)に来る位置
+        drawPixelZombie(320, 248, animTick, state.currentEnemy ? state.currentEnemy.type : 'normal'); // 足元が地面(y=240)に来る位置
     } else if (state.eventStatus === 'BOSS') {
         drawScaledZombie(330, 240, 3, animTick, '#7e22ce'); // ホルゼインは3倍・紫色
     } else if (state.eventStatus === 'SHELTER') {
@@ -1419,16 +1419,25 @@ function drawPixelPlayer(x, y, tick) {
 const ZOMBIE_SPRITE = (() => { const img = new Image(); img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABu0lEQVR42uVWMUvDQBh9CQVJAgEpVNzSJSqlmEwOru7ipD/BwR/RvaMi/oRupbgKolDEKYFS1FsS3VoaLEVTXBqHcnKpUXNJryK+JfAlue/d+77v3QH/HVLWHw3TipLiPnG51ixkTXxQK3/ELk6emS+m79MSkXiT08R2eQ0A4HgPCSSAwWCYioSctQQ0MSWyc7ScaZ1CngaiJPKASwGfuFKj5gEA6DMJaeXPVQK2CSmylEHO2oRfYXV7Io7ALLpOgK4TxGIVuyjWiJIMiFWlUfO4zIh7CnziSoZpRe3LOsK3EtSlPo6vTn/Hiqu7eizWaY24rThXD6hEQcUuomIXoRLl2zNirgoYphUd7lXh3PdjcXu9BAA4a3bEnAVs8p+QloQsIvnCeoDuNHY+zJRl7mM43HyJzfzCFWDdj3fkcivgE1dCazpm5/XrxOShOZ6q1BSkgE9cie7cMK1oa2PlU2noJUX4hYSiPXkEHEAlIWDyXVRyWTHdPYvbux5Xf+Qaw6dAjiUFgCRSQn2ARXlfXbwRsdJ3nYCbRGGeCgxuNHgkFH8jGr2OYzFdU8DGdE1J3YSZFNA1JVXsT+AdEC21RXb9628AAAAASUVORK5CYII='; return img; })();
 
 // ゾンビ描画（x: 体の左端あたり / y-8 が足元の高さ。タイタン・ボスは drawScaledZombie で拡大）
-function drawPixelZombie(x, y, tick) {
+// 敵の種類ごとのドット絵（ないものは通常ゾンビの絵）
+// bottom: 足元の下端の行 / center: 体の中心の列 / sway・bobSpeed: 揺れの速さ
+const ENEMY_SPRITES = {
+    normal: { img: ZOMBIE_SPRITE, bottom: 31, center: 17, swaySpeed: 0.05, bobSpeed: 0.06, bobHeight: 2 },
+    runner: { img: (() => { const img = new Image(); img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABuElEQVR42u1Wv0vDQBh9CYHOgf4IFCIlQ9vJwTmZnBwc/Ad0KLjrKoji7C50qIirg4M4p7OCU9shBAKFpilkLg51uhDTS7y7XOvSb7uQ8N69730vH7Arjqq2m6uis0ipPOC1ViMBzZ43ToAUAb24OpKiqiryUa3VwNPzx/YIELlNS5fuK4XVcOTm/UodveUcABD5IRaTqVKGgFZ0Y9sxkmdDdwbT0nGLb8CTp0BuCyI/BAC8PH4BAGzHwF6zgsCLt9MCooT7eg0AcI5vUGs1qETLtEHhCR9ixKwKZUgovEFEJoFGoqjyCGoirNPgLKMZ+SGq7eaKRkIVBTctnQp+ee78OpuWjoPDDvJiWyvr4rQaWfC/fLWYTBWhKLYdA4EXI/DiNRW6gzH6lXohePo/ooqA51V3MMborJMkZZYcGeP7u7fElJoMcDKaveUceFgHJ22ijavCu5CcnO4n0cwyCWmP0Ahwm3DoztaUCLyYmgO05JQ+BQQ4ezPWTUmFhGKJ4by4FiIwdGeI/BCj90+FVaU8klIU2OpOaDtGYRbw5MbGFWAhqopkANmSWN6Vug+wOp/n3V39e/0ANaDIBwUSKTUAAAAASUVORK5CYII='; return img; })(),
+              bottom: 29, center: 18, swaySpeed: 0.12, bobSpeed: 0.18, bobHeight: 3 }  // ゾンビ犬：素早く跳ねる
+};
+
+function drawPixelZombie(x, y, tick, type = 'normal') {
+    const sp = ENEMY_SPRITES[type] || ENEMY_SPRITES.normal;
     // ゆらゆら前後に揺れながら、よろめくように上下する（足は地面から下に沈まない）
-    const advance = Math.round(Math.sin(tick * 0.05) * 10);
-    const bob = Math.round(-Math.abs(Math.cos(tick * 0.06)) * 2);
+    const advance = Math.round(Math.sin(tick * sp.swaySpeed) * 10);
+    const bob = Math.round(-Math.abs(Math.cos(tick * sp.bobSpeed)) * sp.bobHeight);
     const centerX = x + 10 - advance;
     const feetY = y - 8;
-    if (!ZOMBIE_SPRITE.complete) return;
+    if (!sp.img.complete) return;
     const scale = SPRITE_SCALE;
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(ZOMBIE_SPRITE, Math.round(centerX - 17 * scale), Math.round(feetY - 31 * scale + bob), 32 * scale, 32 * scale);
+    ctx.drawImage(sp.img, Math.round(centerX - sp.center * scale), Math.round(feetY - sp.bottom * scale + bob), 32 * scale, 32 * scale);
 }
 
 // 大型ゾンビ（タイタン・ボス）。groundX/groundY は足元の位置
