@@ -1507,6 +1507,7 @@ function nextPhaseTurn() {
         state.infection += envInfect;
         addLog(`【汚染環境】 イベントの影響で汚染度が+${envInfect}%上昇。`, 'danger');
     }
+    autoCureIfInfected();
     if (state.infection >= 100) { checkGameOver(); return; }
 
     updateCalculatedStats();
@@ -2797,7 +2798,27 @@ function leaveShelter() {
 }
 
 // ゲームオーバー判定
+// 汚染度が100%に達したら、カバンの抗生剤を自動で飲む（ゲームオーバーの前に）
+function autoCureIfInfected() {
+    if (!state.selectedClass || state.eventStatus === 'GAMEOVER' || state.eventStatus === 'CLEAR') return false;
+    let used = false;
+    while (state.infection >= 100) {
+        const idx = state.inventory.findIndex(i => i.id === 'antibiotics');
+        if (idx === -1) break; // 抗生剤がない
+        const pill = state.inventory[idx];
+        state.inventory.splice(idx, 1);
+        if (state.selectedInstanceId === pill.instanceId) state.selectedInstanceId = null;
+        state.infection = Math.max(0, state.infection - 35);
+        addLog(`💊【自動】体が限界まで汚染され、抗生剤を飲んだ。汚染度が35%低下した。`, 'success');
+        AudioFX.play('heal');
+        used = true;
+    }
+    if (used) renderInventoryGrid();
+    return used;
+}
+
 function clampStats() {
+    autoCureIfInfected(); // 上限で切り捨てる前に、上がった分そのままで判定する
     state.hp = Math.max(0, Math.min(state.maxHp, state.hp));
     state.infection = Math.max(0, Math.min(100, state.infection));
     state.hunger = Math.max(0, Math.min(state.maxHunger, state.hunger));
