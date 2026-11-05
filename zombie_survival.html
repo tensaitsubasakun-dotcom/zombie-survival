@@ -1957,6 +1957,7 @@ function resolveSafe(open) {
         // バールは1回で壊れる
         state.inventory.splice(idx, 1);
         if (state.selectedInstanceId && !state.inventory.some(i => i.instanceId === state.selectedInstanceId)) selectItem(null);
+        rollCrowbarGold();
 
         // 4〜5個のランダムなアイテム。拾うかどうかは1つずつ選べる
         const count = 4 + Math.floor(Math.random() * 2);
@@ -2001,7 +2002,21 @@ function removeOneItem(id) {
 }
 // バールは使うと壊れる
 function useCrowbar() {
-    return removeOneItem('crowbar');
+    const ok = removeOneItem('crowbar');
+    if (ok) rollCrowbarGold();
+    return ok;
+}
+
+// バールでこじ開けると、確率でお金も見つかる
+const CROWBAR_GOLD_CHANCE = 0.5;               // お金が見つかる確率
+const CROWBAR_GOLD_MIN = 5, CROWBAR_GOLD_MAX = 15; // 見つかる金額 (G)
+function rollCrowbarGold() {
+    if (Math.random() >= CROWBAR_GOLD_CHANCE) return 0;
+    const g = CROWBAR_GOLD_MIN + Math.floor(Math.random() * (CROWBAR_GOLD_MAX - CROWBAR_GOLD_MIN + 1));
+    state.gold += g;
+    addLog(`💰 こじ開けた奥に ${g}G が隠されていた！`, 'success');
+    AudioFX.play('item');
+    return g;
 }
 
 // ---------- ステージイベント（そのステージにいる間ずっと効く） ----------
