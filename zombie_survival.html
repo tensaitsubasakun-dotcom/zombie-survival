@@ -2761,7 +2761,7 @@ function renderShelterPanels() {
 
 // 次に向かうステージ名 → そのセーフルームのショップに必ず並ぶ商品
 const SHOP_GUARANTEED_BEFORE_STAGE = {
-    '病院': ['gas_mask'],
+    '病院': ['antibiotics'],
 };
 
 function rollShopStock() {
@@ -2771,7 +2771,7 @@ function rollShopStock() {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-    // 次のステージで必ず並べる商品（例：病院の直前はガスマスク確定）
+    // 次のステージで必ず並べる商品（例：病院の直前は抗生剤確定）
     const nextStage = STAGES[Math.min(Math.floor(state.phase / 10), STAGES.length - 1)];
     const guaranteed = (SHOP_GUARANTEED_BEFORE_STAGE[nextStage && nextStage.name] || []).filter(id => pool.includes(id));
     const picks = [...guaranteed, ...pool.filter(id => !guaranteed.includes(id))].slice(0, SHOP_SLOTS);
