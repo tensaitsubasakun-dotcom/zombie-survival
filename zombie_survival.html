@@ -1106,15 +1106,34 @@ function rotateSelectedItem() {
     if (!item || item.w === item.h) return; // 正方形は回しても同じ
 
     const rotated = { ...item, w: item.h, h: item.w };
-    if (canPlaceItem(list, rotated, item.x, item.y, item.instanceId, maxC, maxR)) {
+    // その場で回せなければ、近い空き場所へずらして回す（どこにも入らない時だけ失敗）
+    const spot = findRotateSpot(list, item, rotated, maxC, maxR);
+    if (spot) {
         item.w = rotated.w;
         item.h = rotated.h;
+        item.x = spot.x;
+        item.y = spot.y;
         AudioFX.play('click');
         if (inStash) saveStash();
         selectItem(item.instanceId);
     } else {
-        addLog('回転するスペースがありません！周りを空けるか、別の場所に動かしてから回そう。', 'danger');
+        addLog(`「${item.name}」を回転すると${inStash ? '保管庫' : 'カバン'}のどこにも入りません！ほかのアイテムを動かすか捨ててから回そう。`, 'danger');
     }
+}
+
+// 回転後の置き場所を探す：その場 → 元の位置に近い順
+function findRotateSpot(list, item, rotated, maxC, maxR) {
+    const cands = [];
+    for (let y = 0; y <= maxR - rotated.h; y++) {
+        for (let x = 0; x <= maxC - rotated.w; x++) {
+            if (canPlaceItem(list, rotated, x, y, item.instanceId, maxC, maxR)) {
+                cands.push({ x, y, d: Math.abs(x - item.x) + Math.abs(y - item.y) });
+            }
+        }
+    }
+    if (!cands.length) return null;
+    cands.sort((a, b) => a.d - b.d || a.y - b.y || a.x - b.x);
+    return cands[0];
 }
 
 // 選択中アイテム使用
