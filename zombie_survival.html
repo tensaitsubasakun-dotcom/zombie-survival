@@ -94,6 +94,12 @@
             }
         }
 
+        /* PC：拠点にいる間は下段（カバン・保管庫・ショップ）を広げる */
+        @media (min-width: 768px) {
+            body.in-shelter main { height: 48vh; }
+            body.in-shelter footer { height: 42vh; }
+        }
+
         /* カスタムスクロールバー */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
@@ -271,8 +277,11 @@
                 </div>
             </div>
 
+            <!-- 拠点（セーフルーム）時：選んだアイテムの内容確認・使用（初期非表示） -->
+            <div id="shelter-item-info" class="hidden mb-1 p-1.5 rounded border border-slate-700 bg-slate-900 text-xs"></div>
+
             <!-- 拠点（セーフルーム）時：スタッシュ（保管庫）パネル（初期非表示） -->
-            <div id="stash-panel" class="h-full hidden flex-col justify-between">
+            <div id="stash-panel" class="flex-1 min-h-0 hidden flex-col justify-between">
                 <div class="flex flex-wrap justify-between items-center gap-1 mb-1">
                     <span class="text-xs md:text-sm text-cyan-300 font-bold whitespace-nowrap">📦 <span class="hidden md:inline">拠点</span>保管庫<span class="hidden md:inline"> (このゲーム中のみ保管)</span><span class="md:hidden text-[10px] text-cyan-500"> このゲーム中のみ</span></span>
                     <div class="flex flex-wrap justify-end items-center gap-1 md:gap-2 ml-auto">
@@ -290,7 +299,7 @@
             </div>
 
             <!-- 拠点（セーフルーム）時：ショップパネル（初期非表示） -->
-            <div id="shop-panel" class="h-full hidden flex-col">
+            <div id="shop-panel" class="flex-1 min-h-0 hidden flex-col">
                 <div class="flex justify-between items-center mb-1">
                     <div class="flex items-center gap-2">
                         <span class="text-xs md:text-sm text-yellow-300 font-bold">🛒 ショップ</span>
@@ -935,8 +944,8 @@ function selectItem(instanceId, rerender = true) {
         descEl.textContent = item.desc;
 
         btnRotate.disabled = false;
-        btnUse.disabled = !(item.type === 'heal' || item.type === 'food' || item.id === 'bear_trap' || item.id === 'guard_key');
-        btnUse.textContent = item.id === 'bear_trap' ? '🪤 設置する' : item.id === 'guard_key' ? '🗝️ 扉を開ける' : '✨ 使用する';
+        btnUse.disabled = !getUseLabel(item);
+        btnUse.textContent = getUseLabel(item) || '✨ 使用する';
         btnDrop.disabled = false;
     } else {
         titleEl.textContent = 'アイテムを選択してください';
@@ -965,9 +974,56 @@ function selectItem(instanceId, rerender = true) {
     const hint = document.getElementById('inv-hint');
     if (hint) hint.classList.toggle('hidden', !item);
 
+    renderShelterItemInfo();
     if (!rerender) return;
     renderInventoryGrid();
     if (state.eventStatus === 'SHELTER') renderShelterPanels();
+}
+
+// アイテムを「使う」ボタンの表示名（使えないアイテムは null）
+function getUseLabel(item) {
+    if (!item) return null;
+    if (item.id === 'bear_trap') return '🪤 設置する';
+    if (item.id === 'guard_key') return '🗝️ 扉を開ける';
+    if (item.type === 'heal' || item.type === 'food') return '✨ 使用する';
+    return null;
+}
+
+// 拠点で選んだアイテムの内容と「使用する」ボタンを表示
+function renderShelterItemInfo() {
+    const box = document.getElementById('shelter-item-info');
+    if (!box) return;
+    const inShelter = state.eventStatus === 'SHELTER';
+    box.classList.toggle('hidden', !inShelter);
+    if (!inShelter) return;
+    const item = state.inventory.find(i => i.instanceId === state.selectedInstanceId)
+              || state.stash.find(i => i.instanceId === state.selectedInstanceId);
+    box.innerHTML = '';
+    if (!item) {
+        box.innerHTML = '<span class="text-slate-400">🔍 カバンか保管庫のアイテムを選ぶと、内容の確認と使用ができます</span>';
+        return;
+    }
+    const where = state.stash.includes(item) ? '保管庫' : 'カバン';
+    const head = document.createElement('div');
+    head.className = 'flex items-center justify-between gap-2';
+    head.innerHTML = `<span class="font-bold text-yellow-400 truncate">${item.icon} ${item.name}${item.count ? ` ×${item.count}` : ''}${item.uses ? ` (残り${item.uses}回)` : ''}</span>
+        <span class="text-[10px] text-slate-400 whitespace-nowrap">${where} / サイズ ${item.w}×${item.h}</span>`;
+    box.appendChild(head);
+    const row = document.createElement('div');
+    row.className = 'flex items-center justify-between gap-2 mt-0.5';
+    const desc = document.createElement('p');
+    desc.className = 'text-[11px] text-slate-300 leading-snug';
+    desc.textContent = item.desc;
+    row.appendChild(desc);
+    const label = getUseLabel(item);
+    if (label) {
+        const btn = document.createElement('button');
+        btn.className = 'pixel-btn bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-0.5 rounded text-[11px] whitespace-nowrap shrink-0';
+        btn.textContent = label;
+        btn.onclick = () => useSelectedItem();
+        row.appendChild(btn);
+    }
+    box.appendChild(row);
 }
 
 // 選択中のアイテム回転
@@ -998,10 +1054,17 @@ function rotateSelectedItem() {
 function useSelectedItem() {
     if (!state.selectedInstanceId) return;
     if (state.eventStatus === 'GAMEOVER' || state.eventStatus === 'CLEAR') return;
-    const idx = state.inventory.findIndex(i => i.instanceId === state.selectedInstanceId);
+    // カバン、または拠点にいる時は保管庫のアイテムも使える
+    let list = state.inventory;
+    let idx = list.findIndex(i => i.instanceId === state.selectedInstanceId);
+    if (idx === -1 && state.eventStatus === 'SHELTER') {
+        list = state.stash;
+        idx = list.findIndex(i => i.instanceId === state.selectedInstanceId);
+    }
     if (idx === -1) return;
 
-    const item = state.inventory[idx];
+    const item = list[idx];
+    if (!getUseLabel(item)) return;
     if (item.id === 'guard_key') {
         useGuardKey(); // 鍵の消費・表示更新は useGuardKey 内で行う
         state.selectedInstanceId = null;
@@ -1025,7 +1088,8 @@ function useSelectedItem() {
         applyFoodEffect(item.id);
     }
 
-    state.inventory.splice(idx, 1);
+    list.splice(idx, 1);
+    if (list === state.stash) saveStash();
     state.selectedInstanceId = null;
     selectItem(null);
     updateHUD();
@@ -2506,7 +2570,9 @@ function renderShelterPanels() {
     stashEl.classList.toggle('flex', !isShop);
     shopEl.classList.toggle('hidden', !isShop);
     shopEl.classList.toggle('flex', isShop);
+    document.body.classList.add('in-shelter');
     if (isShop) renderShopPanel(); else renderStashGrid();
+    renderShelterItemInfo();
 }
 
 function rollShopStock() {
@@ -2676,7 +2742,9 @@ function closeStashPanel() {
     document.getElementById('stash-panel').classList.remove('flex');
     document.getElementById('shop-panel').classList.add('hidden');
     document.getElementById('shop-panel').classList.remove('flex');
+    document.getElementById('shelter-item-info').classList.add('hidden');
     document.getElementById('item-detail-panel').classList.remove('hidden');
+    document.body.classList.remove('in-shelter');
 }
 
 function checkGameOver() {
