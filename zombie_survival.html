@@ -434,15 +434,15 @@ const STAGES = [
 // ゾンビデータベース
 // hp: ハンドガン何発で倒せるか / immuneTo: 効かない武器 / deathGas: 倒した時に撒き散らす汚染度
 const ZOMBIES = {
-    normal: { name: 'ゾンビ', dmg: 10, evaPenalty: 0, infPenalty: 0, icon: '🧟', hp: 1 },
-    runner: { name: 'ランナー', dmg: 10, evaPenalty: 0.20, infPenalty: 0, icon: '🏃‍♂️', hp: 1 },
-    spreader: { name: 'スプレッダー', dmg: 5, evaPenalty: 0, infPenalty: 10, icon: '🤢', hp: 1, deathGas: 40 },
-    brute: { name: 'ブルート', dmg: 10, evaPenalty: 0, infPenalty: 0, icon: '💪', hp: 3 },
-    horde: { name: 'ゾンビの大群', dmg: 15, evaPenalty: 0.10, infPenalty: 0, icon: '🧟🧟', hp: 1, immuneTo: ['handgun', 'shotgun', 'fist'] },
-    mutant: { name: 'ミュータント', dmg: 40, evaPenalty: 0.10, infPenalty: 15, icon: '👽', hp: 3 },
+    normal: { name: 'ゾンビ', dmg: 10, evaPenalty: 0, infPenalty: 0, icon: '🧟', hp: 1, reward: 3 },
+    runner: { name: 'ランナー', dmg: 10, evaPenalty: 0.20, infPenalty: 0, icon: '🏃‍♂️', hp: 1, reward: 5 },
+    spreader: { name: 'スプレッダー', dmg: 5, evaPenalty: 0, infPenalty: 10, icon: '🤢', hp: 1, deathGas: 40, reward: 6 },
+    brute: { name: 'ブルート', dmg: 10, evaPenalty: 0, infPenalty: 0, icon: '💪', hp: 3, reward: 8 },
+    horde: { name: 'ゾンビの大群', dmg: 15, evaPenalty: 0.10, infPenalty: 0, icon: '🧟🧟', hp: 1, immuneTo: ['handgun', 'shotgun', 'fist'], reward: 12 },
+    mutant: { name: 'ミュータント', dmg: 40, evaPenalty: 0.10, infPenalty: 15, icon: '👽', hp: 3, reward: 8 },
     // 以下は特定のハプニング・イベントでのみ出現
     riot: { name: 'ゾンビ化した機動隊', dmg: 10, evaPenalty: 0, infPenalty: 0, icon: '🛡️', hp: 3, eventOnly: true },
-    titan: { name: 'タイタン', dmg: 80, evaPenalty: 0.50, infPenalty: 0, icon: '🗿', hp: 4, eventOnly: true, big: true }
+    titan: { name: 'タイタン', dmg: 80, evaPenalty: 0.50, infPenalty: 0, icon: '🗿', hp: 4, eventOnly: true, big: true, reward: 15 }
 };
 
 // ラスボス：極変異体ホルゼイン（ボス戦専用。武器ごとのダメージが通常と異なる）
@@ -498,7 +498,7 @@ const SELL_PRICES = {
 };
 const AMMO_PER_PICKUP = 5;         // 弾薬を手に入れた時の発数（どこで手に入れても一律）
 const SHOP_AMMO_PACK = AMMO_PER_PICKUP; // ショップの弾薬も5発セットで販売
-const KILL_REWARD = 3;             // ゾンビ1体撃破の報酬 (G)
+const KILL_REWARD = 3;             // 撃破報酬 (G) の標準値。ゾンビごとの値は ZOMBIES の reward
 const BACKPACK_PRICE = 30;         // 拡張バックパックの価格 (G)
 const SHOP_SLOTS = 3;              // 店頭に並ぶランダム商品の数
 const SHELTER_HP_HEAL = 20;        // セーフルーム到着時のHP回復量
@@ -1810,8 +1810,9 @@ function executeFight(weaponId) {
     enemy.hp -= weapon.power;
     if (enemy.hp <= 0) {
         const used = weapon.singleUse ? `(${weapon.name}は使い切った)` : '';
-        state.gold += KILL_REWARD;
-        addLog(`${weapon.icon} ${weapon.name}で撃破！${enemy.icon} ${enemy.name}を倒した！ 💰+${KILL_REWARD}G ${used}`, 'success');
+        const reward = enemy.reward ?? KILL_REWARD;
+        state.gold += reward;
+        addLog(`${weapon.icon} ${weapon.name}で撃破！${enemy.icon} ${enemy.name}を倒した！ 💰+${reward}G ${used}`, 'success');
         // スプレッダーは倒すとガスを撒き散らす（ガスマスクで防げる）
         if (enemy.deathGas) {
             if (state.inventory.some(i => i.id === 'gas_mask')) {
