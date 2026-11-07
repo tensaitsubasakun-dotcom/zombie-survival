@@ -464,6 +464,29 @@ const WEAPONS = {
 };
 
 // マスターアイテムDB
+// ドット絵アイコンがあるアイテム（ないものは絵文字のまま）
+// 縦向き（回転させた時）用の絵
+const ITEM_IMAGES_VERTICAL = {
+    handgun: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABoAAAAaCAYAAACpSkzOAAABuElEQVR4XmNkwAJ4+AT/IwtzcHIxvHn5lBGbWmIBE7pCEXFpsCV//vwGY2oBDFfCLMIGKPEVC8xAmAX6xmYMz58+QbHn1YtnFHsMHHTOXoH/QRYQAlr6pihxRwqABx3MR2ISUhj6QT5CF7928TRJiQOeGCgJf2IA3CKQj3KKShkMTUzB+iSlZTD0YxMjFmAkb2IBqfGFYtHhgweJtYdkQLSP7J2c4YaDEgcIg4IbX75DBkRbhA8QYyE8wxICB/ftRcm4yKmUGF+R5SP0rEBM1iDaRyAAKj0unj3FkFlYAS8hpvd3EJVxyfIROYAkH8HA6mWL4Wxi4gcEiPYRcvLGBfBZSpaPYICbhxfO/vrlM5iNbBlyIiHJIlg9BbNAXBJS0r98/gyvpSALwRahezksKhqjOALlI1wAZiEMgCyGgZ8/fzBIyCj8ZwIVjtjqIPRaFh2ADBcTF4cLI7PRLf7z+zdmYjh/5jTDqmVLsToeVL7Bgg3mamTX4wPgzIYcdLhqWBAAhTVMLXJCAAFdA0OGyxfOo8QbCICCDuQjlFxNKE/AUhEhdciOAFkEAkQ1t4gpy7AlKlgogGgAfHmtsh52p3UAAAAASUVORK5CYII=',
+};
+const ITEM_IMAGES = {
+    handgun: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABoAAAAaCAYAAACpSkzOAAABs0lEQVR4XrWWzUoDMRSFo8ysrIIg1rYu3NiFILVo3UnB7ty5cCP4RIIrX0EXvoOCW6vUIvgE1jqlG2n9gQqVG7jpuTNTp42ZD4ZMJk1Ocu9JUqWAjVJlSA9+c8UsD7SULRgBfLehdnAYmayHA3XeXk3VRqwbtGa4H5VU5wH1CzeWtndtFqD2qlXd7/zsVPQXQiyyvJLXPyrvVKzEiMZ9XZe5wqoumw93uiRBETpivVjU5dXlhbVgu/Vi+n5/farMwuIwsiKc0bSgAEE57/felef50gxMuIMLjL3TglZDCNeliTADO4+o7teM7u3NdWQO3B7XhvuRLW42FEFWRzG2KcKWjdtzmNvnZl2MbSokMpeZVx/93kQRxAmFCYsQ2gx43JAYP8jR8Yl+OBQUHgxREiZHNDiRzeVV0B6deXHgmcbErQIRZtjcKotGEkwKZZIAY+yNK2JQCA9IDHf4+zjEhqWwocg4OKeTihAmdBi2ThDoRgybzf0kcsQDPD02xIqQaWaeGDoMm2sRQueIjRBnAleYHCXtnf/y5zXhIjeMp+9zfy2V/3LCdVz5GQxG6r7vdDXEL7h8sduinFXNAAAAAElFTkSuQmCC',
+};
+
+// アイテムのアイコンを HTML で返す。ドット絵があれば画像、なければ絵文字
+// mode: 'grid' はカバン/保管庫のマス、'inline' は文字と並べる小さな表示
+function itemIconHTML(item, mode = 'inline') {
+    const src = ITEM_IMAGES[item.id];
+    if (!src) return item.icon;
+    if (mode === 'grid') {
+        // マスいっぱいに表示（下の名前の分だけ空ける）。縦向きの時は回転済みの絵を使う
+        const vertical = (item.h || 1) > (item.w || 1);
+        const img = vertical && ITEM_IMAGES_VERTICAL[item.id] ? ITEM_IMAGES_VERTICAL[item.id] : src;
+        return `<img src="${img}" alt="${item.name}" draggable="false" class="pointer-events-none absolute" style="image-rendering:pixelated;left:4px;right:4px;top:3px;bottom:14px;width:calc(100% - 8px);height:calc(100% - 17px);object-fit:contain;">`;
+    }
+    return `<img src="${src}" alt="${item.name}" draggable="false" style="image-rendering:pixelated;display:inline-block;width:1.25em;height:1.25em;vertical-align:-0.25em;object-fit:contain;">`;
+}
+
 const ITEM_DB = {
     'handgun': { id: 'handgun', name: 'ハンドガン', w: 2, h: 1, type: 'weapon', color: 'bg-blue-800', border: 'border-blue-500', icon: '🔫', desc: '標準的な拳銃。戦闘時、弾薬を1発消費して確実に撃破する。', metal: true },
     'shotgun': { id: 'shotgun', name: 'ショットガン', w: 3, h: 1, type: 'weapon', color: 'bg-red-950', border: 'border-red-600', icon: '💥', desc: '散弾銃。弾薬1発でハンドガン3発分の威力。ブルートやミュータントも一撃。大群には効かない。イベントかショップで入手。', eventOnly: true, shopSellable: true, metal: true },
@@ -876,7 +899,7 @@ function createItemDOM(item, cellSize, locationType) {
     const countBadge = badgeValue ? `<span class="absolute bottom-0.5 right-1 bg-black/80 px-1 rounded text-[10px] text-yellow-300 font-bold">${badgeValue}</span>` : '';
     
     el.innerHTML = `
-        <span class="text-base md:text-xl pointer-events-none">${item.icon}</span>
+        ${ITEM_IMAGES[item.id] ? `${itemIconHTML(item, 'grid')}<span class="flex-1"></span>` : `<span class="text-base md:text-xl pointer-events-none">${item.icon}</span>`}
         <span class="text-[9px] leading-none text-center font-bold text-white/90 truncate w-full pointer-events-none">${item.name}</span>
         ${countBadge}
     `;
@@ -1023,7 +1046,7 @@ function selectItem(instanceId, rerender = true) {
     const btnDrop = document.getElementById('btn-item-drop');
 
     if (item) {
-        titleEl.textContent = `${item.icon} ${item.name}`;
+        titleEl.innerHTML = `${itemIconHTML(item)} ${item.name}`;
         sizeEl.textContent = `サイズ: ${item.w}×${item.h}`;
         descEl.textContent = item.desc;
 
@@ -1100,7 +1123,7 @@ function renderShelterItemInfo() {
     if (preview) {
         const head = document.createElement('div');
         head.className = 'flex items-center justify-between gap-2';
-        head.innerHTML = `<span class="font-bold text-cyan-300 truncate">🛒 ${preview.icon} ${preview.name}</span>
+        head.innerHTML = `<span class="font-bold text-cyan-300 truncate">🛒 ${preview.iconHTML || preview.icon} ${preview.name}</span>
             <span class="text-[10px] text-slate-400 whitespace-nowrap">商品 / サイズ ${preview.size} / <span class="text-yellow-300 font-bold">${preview.price}G</span></span>`;
         box.appendChild(head);
         const row = document.createElement('div');
@@ -1128,7 +1151,7 @@ function renderShelterItemInfo() {
     const where = state.stash.includes(item) ? '保管庫' : 'カバン';
     const head = document.createElement('div');
     head.className = 'flex items-center justify-between gap-2';
-    head.innerHTML = `<span class="font-bold text-yellow-400 truncate">${item.icon} ${item.name}${item.count ? ` ×${item.count}` : ''}${item.uses ? ` (残り${item.uses}回)` : ''}</span>
+    head.innerHTML = `<span class="font-bold text-yellow-400 truncate">${itemIconHTML(item)} ${item.name}${item.count ? ` ×${item.count}` : ''}${item.uses ? ` (残り${item.uses}回)` : ''}</span>
         <span class="text-[10px] text-slate-400 whitespace-nowrap">${where} / サイズ ${item.w}×${item.h}</span>`;
     box.appendChild(head);
     const row = document.createElement('div');
@@ -2850,7 +2873,7 @@ function renderShopPanel() {
         const data = ITEM_DB[slot.id];
         const price = getBuyPrice(slot.id);
         const name = slot.id === 'ammo' ? `弾薬(${SHOP_AMMO_PACK}発)` : data.name;
-        addRow(data.icon, name, `サイズ ${data.w}×${data.h}`, price,
+        addRow(itemIconHTML({ ...data, id: slot.id }), name, `サイズ ${data.w}×${data.h}`, price,
             slot.sold ? '売切' : state.gold < price ? 'G不足' : null,
             () => buyShopItem(idx), false, `slot${idx}`);
     });
@@ -2916,7 +2939,7 @@ function getShopPreview(key) {
     const data = ITEM_DB[slot.id];
     const price = getBuyPrice(slot.id);
     return {
-        icon: data.icon, name: slot.id === 'ammo' ? `弾薬(${SHOP_AMMO_PACK}発)` : data.name,
+        icon: data.icon, iconHTML: itemIconHTML({ ...data, id: slot.id }), name: slot.id === 'ammo' ? `弾薬(${SHOP_AMMO_PACK}発)` : data.name,
         size: `${data.w}×${data.h}`, price, desc: data.desc,
         disabledReason: slot.sold ? '売切' : state.gold < price ? 'G不足' : null,
         buy: () => buyShopItem(idx)
