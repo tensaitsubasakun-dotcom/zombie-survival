@@ -1398,7 +1398,7 @@ function renderCanvas() {
     } else if (state.eventStatus === 'BOSS') {
         drawScaledZombie(330, 240, 3, animTick, '#7e22ce'); // ホルゼインは3倍・紫色
     } else if (state.eventStatus === 'SHELTER') {
-        drawShelterNpc(340, 200);
+        drawShelterTent(340, 240); // 地面(y=240)にテントを立てる
     }
 
     // 雨・環境パーティクル
@@ -1534,11 +1534,17 @@ function drawScaledZombie(groundX, groundY, scale, tick, tint) {
     ctx.restore();
 }
 
-function drawShelterNpc(x, y) {
-    ctx.fillStyle = '#06b6d4';
-    ctx.fillRect(x, y - 30, 18, 22);
-    ctx.fillStyle = '#f87171';
-    ctx.fillRect(x + 2, y - 44, 14, 14);
+// セーフルームのテント（32×32のドット絵。29行目のペグは地面に刺さる）
+const TENT_SPRITE = (() => { const img = new Image(); img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABd0lEQVR4XmNgGAWjgAKgpm34/+M+6/8gmlxjmMjVSC1AtgNAvj49mQvsDhBNbiiQ7QBqAbIcgOx7GCA3FEh2ADbLKXEEyQ6gNiDJAfh8T24okOQAQuDO5a+ElGAAoh1AjO9VdLnBjiAlQRLlAJDly9P+M/ApmBD0IcwRIPXElA0sBE3EAyoaXsBlOxokyDKKYAjAfG/ka0+0BaBQAAFiQoHoEDi3+SDcYBAA+b53+VS4o4ojs8kKBbwhAPM9JYBQKOB0AD7LkeMeGeASx+cIgmkAF0AOfhBA5xMLsDqAHN/DAKmhQHYIUAswohuEz/dz1n4mGNyg3AACKcG8WN0YOYuR4dbV83B7UUKAGqmeEEBPkAMeBfCCiJhyGwZgwUwJANkHigqUkhAUPBfP/mLQN2bDa7apAjtO+dMPfuLVCzJ/eRobOC2AAIoDQGU4CJvmfgNXqeigQ5cbnM0IWYKrYoKYKwg19hv+AJwXp0V2ZwMboLZ5wwcAAGhloXFuUTi5AAAAAElFTkSuQmCC'; return img; })();
+const TENT_SCALE = 3;
+const TENT_BASE_ROW = 28;   // テントの床（地面に乗る行）
+const TENT_CENTER = 16;
+
+function drawShelterTent(centerX, groundY) {
+    if (!TENT_SPRITE.complete || !TENT_SPRITE.naturalWidth) return;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(TENT_SPRITE, Math.round(centerX - TENT_CENTER * TENT_SCALE), Math.round(groundY - (TENT_BASE_ROW + 1) * TENT_SCALE),
+        32 * TENT_SCALE, 32 * TENT_SCALE);
 }
 
 function drawWeatherParticles(stageIdx, tick) {
