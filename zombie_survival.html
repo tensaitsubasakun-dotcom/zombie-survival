@@ -1489,7 +1489,26 @@ const ENEMY_SPRITES = {
               bottom: 38, center: 16, swaySpeed: 0.03, bobSpeed: 0.04, bobHeight: 2, scale: 4 }  // タイタン：32×39の大きな絵を2倍サイズで
 };
 
+// ゾンビの大群：通常ゾンビを前後2列に並べる（後ろの列は小さく暗くして奥行きを出す）
+// dx=横のずれ, dy=足元の高さのずれ, s=大きさ, b=明るさ, ph=動きのずれ。後ろの列から順に描く
+const HORDE_FORMATION = [
+    { dx: -56, dy: -8, s: 0.8, b: 0.55, ph: 4 }, { dx: 0, dy: -8, s: 0.8, b: 0.55, ph: 10 }, { dx: 56, dy: -8, s: 0.8, b: 0.55, ph: 16 },
+    { dx: -28, dy: 0, s: 1, b: 1, ph: 0 }, { dx: 28, dy: 0, s: 1, b: 1, ph: 8 }
+];
+
+function drawHorde(x, y, tick) {
+    for (const z of HORDE_FORMATION) {
+        ctx.save();
+        ctx.translate(x + 10 + z.dx, y - 8 + z.dy);
+        ctx.scale(z.s, z.s);
+        if (z.b < 1) ctx.filter = `brightness(${z.b})`;
+        drawPixelZombie(-10, 8, tick + z.ph, 'normal');
+        ctx.restore();
+    }
+}
+
 function drawPixelZombie(x, y, tick, type = 'normal') {
+    if (type === 'horde') return drawHorde(x, y, tick);
     const sp = ENEMY_SPRITES[type] || ENEMY_SPRITES.normal;
     // ゆらゆら前後に揺れながら、よろめくように上下する（足は地面から下に沈まない）
     const advance = Math.round(Math.sin(tick * sp.swaySpeed) * 10);
