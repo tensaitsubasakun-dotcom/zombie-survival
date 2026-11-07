@@ -1391,8 +1391,8 @@ function renderCanvas() {
     }
 
     // 3. 状態に応じたモンスター・エフェクト描画
-    if (state.eventStatus === 'ENCOUNTER' && state.currentEnemy && state.currentEnemy.big) {
-        drawScaledZombie(330, 240, 2, animTick, null); // タイタンは2倍の大きさ
+    if (state.eventStatus === 'ENCOUNTER' && state.currentEnemy && state.currentEnemy.big && !ENEMY_SPRITES[state.currentEnemy.type]) {
+        drawScaledZombie(330, 240, 2, animTick, null); // 専用の絵がない大型ゾンビは2倍の大きさ
     } else if (state.eventStatus === 'ENCOUNTER') {
         drawPixelZombie(320, 248, animTick, state.currentEnemy ? state.currentEnemy.type : 'normal'); // 足元が地面(y=240)に来る位置
     } else if (state.eventStatus === 'BOSS') {
@@ -1484,7 +1484,9 @@ const ENEMY_SPRITES = {
     spreader: { img: (() => { const img = new Image(); img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAB6klEQVR4XsWWsU4CQRCGF2Ps7SgUqagwFNT6AtaWvIKxs+JRSEwobYUH0JrCaGFsRLTwGWww/+Gcc8Puzsx5iV9CIMDt/8/O7OyE8M+0vPrtXmfNn/l8WbnX4Ox6DED8bNQPp8NuuFssi0dn07D+i4kdjwEwGc8Lcbw3gcsAIm33OmG4+Aqvz9dN6PsMEIvhXji/uGnEgKkGZOE93LfC4OS3Fvnv3npQKxiLH3SPy2i5MIAZycfy0Wwka4CLkzDyjxRIpBGrCVMKeNQQxzEk6DjiP7Hd0EgaoOi5OBeOUU1PkTa1R2SPoUU8ZUrWSgpTH0iJ0PYTqA8vJgMptJRYiBqgnu9Fng7cG7KHSNQdaCLKHFsGePSz6VO4urzdyrUGniO0XVB3wNtaicl43iIjORMVAzJ6EsdCsuIt4HnNRGkgJc6BCTJCnzVjmonCAJ90QGrL6JzHROk3RMzTpq1dSQEKDvAiAhQFjhmEZMNJXVAEpVCuC8rbEE5/Jp5o/5bXcozUDZhbW50HKEU0E3QOj8Lq/a2iz7+zXsOEegw5uGD2u5tpGEJ4AWnIg9kAxGXukTIyURfTQLIpwrAOo35dnSTmHQB1Jh4Nl4Ec1gFE4jJQVySHqQas88HGoG0WJMx9QEZB7TY2cHhu0G8x1h2iEsSNugAAAABJRU5ErkJggg=='; return img; })(),
               bottom: 31, center: 15, swaySpeed: 0.04, bobSpeed: 0.05, bobHeight: 2, scale: 3 }, // 膨れたスプレッダー：重たくゆっくり、1.5倍
     brute: { img: (() => { const img = new Image(); img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAB4klEQVR4XsWXsUoDQRCGJ2IpFlYiGFNZBYSkUkgewIhW2vkEvoJa5B0sre4JBJMHMGCnIElldUoQKwVJH/njTW7Z29uZvVzwAxGSYebf2ZnZCdE/U9HG39ytTvNsP1/f1X5sVjUCELxzXqd2s5Yxf3iKqRfRtKgIUQAHBwhWNisah7dXfY1ZIbwZSE9fL+Rcg5iBl0GFLk/P6PDuy+mvF42WV4RJYU33j4d0s76lOVAwYgYgAsEvfj5yneOq+C9Ugbd/zd5HG5qYLbl2/UyTbiNpydHMTNuWuUWY1/toRdc8gIh2tzHXqJ0NzisIDe4CGfNNT0asgWXjnQMhk49rIBSvAPOuWYwtCvOhf7JBZI1p7XxwCkAFo4js08Cp/ShNmjVqL/BOiDWALLiqvizE11BTB7aNNv1AFMCnN4P4RIUEVwlwBbOvxCdIwpsBvITMOB5mChBwcNjCRjuCGfEKqts7M1s4NwOafMdY1d6kwzoRu8CGs2L/L4qYAeagdUS96D7Jxt+n45hmnwPOFFHYguoVsNfCLEoX0U6tPq/ydF1Lv38chG9HYgZc49jE1aYhBNdA2YgZMHvcNWQWmQFAzID0FkjfSwRlwMWiGcgI4DXKXkJNNKuWlsxWLDnHqC3zl/IvPWnnnUnEXEUAAAAASUVORK5CYII='; return img; })(),
-              bottom: 31, center: 14, swaySpeed: 0.035, bobSpeed: 0.045, bobHeight: 1, scale: 3 }  // ブルート：どっしり重たく、普通のゾンビの1.5倍
+              bottom: 31, center: 14, swaySpeed: 0.035, bobSpeed: 0.045, bobHeight: 1, scale: 3 }, // ブルート：どっしり重たく、普通のゾンビの1.5倍
+    titan: { img: (() => { const img = new Image(); img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAnCAYAAABuf0pMAAAEc0lEQVR4Xq2YK2wcVxSGr6uCPtVaAW0lo5VJQdGWuC1cWLrLyiKbhkQ2sQosVbZCQj20zMuLViWNFGRcElkBloqiLYhUuNV3M9/0zN25u67lXxqNZ+dxzvnPfx7JTqpgd3d3Vd5aLpc7tefvi/fLFzV8fn7O3+nV2fP08s1f+bEXKa0e2oleRBifTCaJA+Pi1dlZ2j89TfP5PC0WiwdlomNA49PpdI1NjIPlcnlfpqt4L96JxqE+gugFzg5p5D7oOSB+fXKc8w7dAOM3NzdpNBqly8vLdHh4mH9/CEfWHJjNZumn5xfpxT9/Zy2cnJxkPeAA4Dwej7Mj3McpHbkPKz0HiBhjR0dH2UDMO1FzX1YAKZMVnv/hw8//NyudA5QXVPOhp3t7WQNGT8QciBCDTdN0qVGYVMrBo0/S072vO0fuoom1FOAEqn92+2d6/PGXOUpZwQlpx4nr6+vMTBQs2jl49NWdneg5AAtQrOJxAqNeEz3gjBZwBuyfPmmD/TR98P23+W90dBestVaFRD75CBWBIAHOwIblirM6AWRCh9BSq6NqC19Lga0W4+RV4xiC8tgryD9MlIZF6KpVPQz2AZzA+2e3t/lbfEghRujUfyl4lw6YwTGOoc4aMehApA3Dlpu5N2LSwYFG1InGEenx8fFWGaxNwxJxKBGx03E/PBh7A07aKQXXTdMMTtIqA4KPk3sApZTZjz+fZEe49l5MVXxX8doxywA3LhhOSJwgDXEgcY0DNieewYjpsnUrXJ0tx/nWFNiIMI4x6eWalMSSxIi/8yzG1AHXHGhqNBqtmqbJwVcZsB/ENiwDzgmiM1IHluoH/OazgJ5CeVNhlntNA6s48T777Y+u51uiRuT2ZMl5XRqHDRvbtjLMaxlUa+T3Lz7K0dqKcYJBZSNyJsSKiaChxY4Z0WlgPB7nqDHixFNk/r5YLHZ4jt/tAZzjvLAkW6ZWpODlm7e5bEkhnXVwsSXnV1dXlEl3HlowXD54tq2SfPaYTPrXPDedTvPxyzffrX2zEyEfYJYzATlT76W3UZjWvbtBW+edVuwPirC2UffKEKMsIzgR23Gr6C5FasPaB7Zpq6JEbaPubURETL4YxTFPRE69I0wiUWxqBFiiLiwglmDZnkV1H9ABjMcPAeoYJ4haqhWqzvCO3S82q7ahdXYH94FBlaaULi7ebTmWlHTHqGMKcM6qcHlp+0Q3E7YOI4DQGD5Eaf27pLb6UDMdtYpOyFTZKzbOAocRL+0fTroRbJ83z6TEmcGzMXIqCsBMudaDKgNtXfcod9mQVgbNbDbr6Yh7sAMsa1PnQIsp3jiMEBLRuY7HyMoqsQwVXBzdoKarjRog3zjh1HMetG24ExIfh2KVD3Ak7pG1f7ZVGWjFtXI9B/4/AY4gzDIqSxbKhwYT75XvbGSAh2lOzHHw+uCgp/oSjmq35aGuWDKxlQGMIDZHMdG1JbV1mXGNi1OWCorsVcvQ9hvneNiANjouzfP5fK2LltgaxRBqio7Y9n8FfuNfCodx873T/rYAAAAASUVORK5CYII='; return img; })(),
+              bottom: 38, center: 16, swaySpeed: 0.03, bobSpeed: 0.04, bobHeight: 2, scale: 4 }  // タイタン：32×39の大きな絵を2倍サイズで
 };
 
 function drawPixelZombie(x, y, tick, type = 'normal') {
@@ -1497,7 +1499,7 @@ function drawPixelZombie(x, y, tick, type = 'normal') {
     if (!sp.img.complete) return;
     const scale = sp.scale || SPRITE_SCALE; // 敵ごとに大きさを変えられる
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(sp.img, Math.round(centerX - sp.center * scale), Math.round(feetY - sp.bottom * scale + bob), 32 * scale, 32 * scale);
+    ctx.drawImage(sp.img, Math.round(centerX - sp.center * scale), Math.round(feetY - sp.bottom * scale + bob), sp.img.naturalWidth * scale, sp.img.naturalHeight * scale);
 }
 
 // 大型ゾンビ（タイタン・ボス）。groundX/groundY は足元の位置
