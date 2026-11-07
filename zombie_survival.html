@@ -1419,7 +1419,7 @@ function renderCanvas() {
     } else if (state.eventStatus === 'ENCOUNTER') {
         drawPixelZombie(320, 248, animTick, state.currentEnemy ? state.currentEnemy.type : 'normal'); // 足元が地面(y=240)に来る位置
     } else if (state.eventStatus === 'BOSS') {
-        drawScaledZombie(330, 240, 3, animTick, '#7e22ce'); // ホルゼインは3倍・紫色
+        drawScaledZombie(330, 240, 2, animTick, '#7e22ce'); // ホルゼインは2倍・紫色（スマホの表示範囲に収まる大きさ）
     } else if (state.eventStatus === 'SHELTER') {
         drawShelterTent(340, 240); // 地面(y=240)にテントを立てる
     }
