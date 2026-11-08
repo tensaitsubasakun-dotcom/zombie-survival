@@ -2980,9 +2980,9 @@ function renderShopPanel() {
     const label = document.createElement('span');
     label.className = 'text-slate-200';
     const countText = item.id === 'ammo' ? ` ×${item.count}発` : '';
-    label.textContent = price === null
-        ? `💱 ${item.icon} ${item.name} はショップで買い取れません`
-        : `💱 ${item.icon} ${item.name}${countText} → ${price}G で売却`;
+    label.innerHTML = price === null
+        ? `💱 ${itemIconHTML(item)} ${item.name} はショップで買い取れません`
+        : `💱 ${itemIconHTML(item)} ${item.name}${countText} → ${price}G で売却`;
     sell.appendChild(label);
     if (price !== null) {
         const btn = document.createElement('button');
