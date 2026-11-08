@@ -3249,6 +3249,7 @@ function checkGameOver() {
         state.eventStatus = 'GAMEOVER';
         const reason = state.hp <= 0 ? 'ダメージにより死亡した…' :
                        state.infection >= 100 ? '体が完全に腐敗し、ゾンビと化した…' : '飢えにより倒れた…';
+        updateHUD(); // 死んだ時の値（汚染度100%・空腹度0など）をゲージに反映する
         addLog(`【GAME OVER】 ${reason}`, 'danger');
         renderActionButtons();
     } else if (state.phase > 100) {
