@@ -2956,7 +2956,7 @@ function renderShopPanel() {
 
     // 常設：弾薬（何度でも買える）
     const ammoPrice = getBuyPrice('ammo');
-    addRow(ITEM_DB.ammo.icon, `弾薬(${SHOP_AMMO_PACK}発)【常設】`, 'サイズ 1×1 / 何度でも買える', ammoPrice,
+    addRow(itemIconHTML(ITEM_DB.ammo), `弾薬(${SHOP_AMMO_PACK}発)【常設】`, 'サイズ 1×1 / 何度でも買える', ammoPrice,
         state.gold < ammoPrice ? 'G不足' : null,
         () => buyAmmo(), false, 'ammo');
 
@@ -3019,7 +3019,7 @@ function getShopPreview(key) {
     if (key === 'ammo') {
         const price = getBuyPrice('ammo');
         return {
-            icon: ITEM_DB.ammo.icon, name: `弾薬(${SHOP_AMMO_PACK}発)【常設】`, size: '1×1', price,
+            icon: ITEM_DB.ammo.icon, iconHTML: itemIconHTML(ITEM_DB.ammo), name: `弾薬(${SHOP_AMMO_PACK}発)【常設】`, size: '1×1', price,
             desc: `${ITEM_DB.ammo.desc} ショップにいつも並んでいて、何度でも買える。`,
             disabledReason: state.gold < price ? 'G不足' : null,
             buy: () => buyAmmo()
