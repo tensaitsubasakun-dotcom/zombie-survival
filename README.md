@@ -19,3 +19,14 @@
 cd /d E:\smobie_survival
 git pull
 ```
+
+## 見た目（Tailwind CSS）を変えたとき
+ゲームは外のサーバーから Tailwind を読み込まず、使っているクラスだけを `zombie_survival.html` の `<style id="tailwind-css">` に入れています。
+新しいクラス（色・大きさなど）を使ったら、次のコマンドで入れ直してください。
+
+```
+node tools/build-css.js
+```
+
+## ホーム画面に追加・オフライン
+`manifest.webmanifest` と `sw.js` で、スマホのホーム画面に追加してアプリのように遊べます。一度開けば電波がなくても遊べます。
