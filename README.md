@@ -30,3 +30,8 @@ node tools/build-css.js
 
 ## ホーム画面に追加・オフライン
 `manifest.webmanifest` と `sw.js` で、スマホのホーム画面に追加してアプリのように遊べます。一度開けば電波がなくても遊べます。
+
+## アクセス解析（GoatCounter）
+`zombie_survival.html` の `ANALYTICS_COUNT_URL` に GoatCounter の URL（例：`https://（コード）.goatcounter.com/count`）を入れると、
+github.io で遊ばれた時だけ、タイトル表示・ゲーム開始・ステージ突破・ボス到達・ゲームオーバー（ステージと原因）・クリアを数えます。
+クッキーは使わず、個人は特定しません。空のあいだは何も送りません。
