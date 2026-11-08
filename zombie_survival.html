@@ -118,7 +118,16 @@
         .banner-warn { color: #fecaca; font-weight: 900; font-size: clamp(18px, 5vw, 44px); letter-spacing: 0.25em; text-shadow: 0 0 12px #dc2626, 0 0 28px #dc2626; animation: bannerIn .35s ease-out, warnBlink .5s .35s 3; }
         .banner-bar { width: 100%; background: rgba(127, 29, 29, 0.75); border-top: 2px solid #ef4444; border-bottom: 2px solid #ef4444; padding: 4px 0; }
         .banner-sub { color: #e9d5ff; font-weight: 800; font-size: clamp(12px, 3vw, 24px); text-shadow: 0 0 10px #7e22ce; animation: bannerIn .5s ease-out; }
-        .banner-win { color: #fef08a; font-weight: 900; font-size: clamp(20px, 5.5vw, 48px); letter-spacing: 0.15em; text-shadow: 0 0 14px #f59e0b, 0 0 30px #f59e0b; animation: bannerIn .5s ease-out; }
+        /* 撃破のテロップ（映画風：光る線が伸びて、英字がじわっと浮かぶ） */
+        .win-wrap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: linear-gradient(to bottom, rgba(0,0,0,.85) 0, rgba(0,0,0,0) 18%, rgba(0,0,0,0) 82%, rgba(0,0,0,.85) 100%); }
+        .win-line { width: 0; height: 1px; background: linear-gradient(90deg, transparent, #e5e7eb, transparent); animation: winLine .9s ease-out forwards; }
+        .win-en { white-space: nowrap; color: #f8fafc; font-weight: 300; letter-spacing: .45em; padding-left: .45em; font-size: clamp(13px, 2.6vw, 30px); margin: 10px 0 6px;
+            opacity: 0; animation: winFade 1.2s .3s ease-out forwards; text-shadow: 0 0 18px rgba(255,255,255,.35); }
+        .win-jp { color: #cbd5e1; letter-spacing: .35em; padding-left: .35em; font-size: clamp(10px, 1.6vw, 15px); opacity: 0; animation: winFade 1.2s .7s ease-out forwards; }
+        .win-after { color: #cbd5e1; letter-spacing: .25em; padding-left: .25em; font-size: clamp(11px, 2vw, 18px); opacity: 0; animation: winFade 1.2s ease-out forwards; }
+        @keyframes winLine { to { width: 70%; } }
+        @keyframes winFade { from { opacity: 0; filter: blur(6px); } to { opacity: 1; filter: blur(0); } }
         .banner-out { animation: bannerOut .6s ease-in forwards; }
         #ending-modal { transition: opacity 1.2s ease; }
 
@@ -2816,25 +2825,28 @@ function executeExtinguisherFlee() {
 // ---------- ボス戦：極変異体ホルゼイン ----------
 // ===== ボス登場・撃破の演出 =====
 const BOSS_INTRO_MS = 3200;   // 登場演出の長さ（この間は行動ボタンを出さない）
-const BOSS_DEATH_MS = 4200;   // 撃破演出の長さ（このあとエンディングへ）
+const BOSS_DEATH_MS = 5600;   // 撃破演出の長さ（このあとエンディングへ）
 let bossIntroStart = 0;
 let bossDeathStart = 0;
 
 function isBossIntroPlaying() { return bossIntroStart && performance.now() - bossIntroStart < BOSS_INTRO_MS; }
 
 let bannerTimers = [];
+let bannerHideTimers = []; // 文字を消す予定（新しい文字を出したら取り消す）
 function showCanvasBanner(html, ms) {
     const el = document.getElementById('canvas-banner');
     if (!el) return;
+    bannerHideTimers.forEach(clearTimeout); bannerHideTimers = [];
     el.innerHTML = html;
     el.classList.remove('hidden');
-    if (ms) bannerTimers.push(setTimeout(() => {
-        el.firstElementChild && [...el.children].forEach(c => c.classList.add('banner-out'));
-        bannerTimers.push(setTimeout(() => el.classList.add('hidden'), 600));
+    if (ms) bannerHideTimers.push(setTimeout(() => {
+        [...el.children].forEach(c => c.classList.add('banner-out'));
+        bannerHideTimers.push(setTimeout(() => el.classList.add('hidden'), 600));
     }, ms));
 }
 function clearCanvasBanner() {
     bannerTimers.forEach(clearTimeout); bannerTimers = [];
+    bannerHideTimers.forEach(clearTimeout); bannerHideTimers = [];
     const el = document.getElementById('canvas-banner');
     if (el) { el.classList.add('hidden'); el.innerHTML = ''; }
 }
@@ -2860,8 +2872,11 @@ function playBossDeath() {
     AudioFX.play('boom');
     setTimeout(() => AudioFX.play('boom'), 450);
     setTimeout(() => AudioFX.play('roar'), 200);
-    bannerTimers.push(setTimeout(() => { AudioFX.play('fanfare'); showCanvasBanner(`<div class="banner-win">ホルゼイン撃破！</div>`, 1500); }, 1300));
-    bannerTimers.push(setTimeout(() => showCanvasBanner(`<div class="banner-sub">救助ヘリが、こちらに向かってくる──</div>`), 3000));
+    bannerTimers.push(setTimeout(() => {
+        AudioFX.play('fanfare');
+        showCanvasBanner(`<div class="win-wrap"><div class="win-line"></div><div class="win-en">MISSION COMPLETE</div><div class="win-jp">極変異体ホルゼイン 討伐</div><div class="win-line" style="margin-top:10px"></div></div>`, 2300);
+    }, 1200));
+    bannerTimers.push(setTimeout(() => showCanvasBanner(`<div class="win-after">救助ヘリが、こちらに向かってくる──</div>`), 4100));
 }
 
 // Canvasに描く演出（画面のゆれ・フラッシュ・ボスの出入り）
