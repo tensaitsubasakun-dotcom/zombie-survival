@@ -56,6 +56,14 @@
             border: 3px solid #374151;
             box-shadow: inset -2px -2px 0px 0px #111827, inset 2px 2px 0px 0px #4b5563;
         }
+        /* 職業選択：選んだカードを目立たせ、選んでいないカードは少し暗くする */
+        .class-card { position: relative; transition: transform .15s ease, opacity .15s ease, border-color .15s ease, box-shadow .15s ease; }
+        .class-card.is-selected { border-color: #facc15; transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 0 0 2px #facc15, 0 0 22px rgba(250, 204, 21, .55), inset -2px -2px 0 0 #111827, inset 2px 2px 0 0 #4b5563; }
+        .class-cards-picked .class-card:not(.is-selected) { opacity: .5; filter: saturate(.6); }
+        .class-card .picked-badge { display: none; position: absolute; top: -12px; right: 10px; background: #facc15; color: #111827;
+            font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 9999px; box-shadow: 0 2px 0 #000; }
+        .class-card.is-selected .picked-badge { display: block; }
 
         .pixel-btn {
             border: 3px solid #5b21b6;
@@ -1847,16 +1855,21 @@ function initClassSelectionUI() {
 
     Object.values(CLASSES).forEach(c => {
         const card = document.createElement('div');
-        card.className = `pixel-card p-4 rounded cursor-pointer transition-all flex flex-col justify-between ${c.bg} hover:border-purple-400`;
+        card.className = `pixel-card class-card p-4 rounded cursor-pointer flex flex-col justify-between ${c.bg} hover:border-purple-400`;
         card.onclick = () => {
-            document.querySelectorAll('#class-cards-container > div').forEach(el => el.classList.remove('ring-4', 'ring-purple-400'));
-            card.classList.add('ring-4', 'ring-purple-400');
+            document.querySelectorAll('#class-cards-container > div').forEach(el => el.classList.remove('is-selected'));
+            card.classList.add('is-selected');
+            container.classList.add('class-cards-picked');
             state.selectedClass = c;
-            document.getElementById('btn-start-game').disabled = false;
+            const startBtn = document.getElementById('btn-start-game');
+            startBtn.disabled = false;
+            startBtn.textContent = `${c.name}で出撃する (GAME START)`;
             AudioFX.play('click');
+            fitTitleScreen();
         };
 
         card.innerHTML = `
+            <span class="picked-badge">✓ 選択中</span>
             <div>
                 <h3 class="text-xl font-bold text-purple-300 mb-1">${c.name}</h3>
                 <p class="text-xs text-slate-300 mb-3 leading-relaxed">${c.desc}</p>
@@ -3734,6 +3747,25 @@ function clearSave() {
     try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
 }
 
+// PCでは、タイトル画面がスクロールせずに1画面に収まるよう、タイトルの絵の大きさを調整する
+function fitTitleScreen() {
+    const modal = document.getElementById('class-select-modal');
+    const art = document.getElementById('title-art');
+    const title = document.getElementById('title-text');
+    if (!modal || !art || modal.classList.contains('hidden')) return;
+    if (!window.matchMedia('(min-width: 768px)').matches) { art.style.maxWidth = ''; if (title) title.style.fontSize = ''; return; }
+    art.style.maxWidth = 'min(56rem, 75vh)';
+    if (title) title.style.fontSize = '';
+    // はみ出している分だけ絵を小さくする（絵は横:縦 = 3:2）
+    for (let i = 0; i < 4 && modal.scrollHeight > modal.clientHeight; i++) {
+        const over = modal.scrollHeight - modal.clientHeight + 10;
+        const w = Math.max(240, art.offsetWidth - over * 1.5);
+        art.style.maxWidth = `${w}px`;
+        if (title) title.style.fontSize = w < 640 ? `${Math.max(1.6, w / 230).toFixed(2)}rem` : '';
+    }
+}
+window.addEventListener('resize', fitTitleScreen);
+
 // タイトル画面に「続きから遊ぶ」を出す
 function showResumeButton() {
     const data = loadSaveData();
@@ -3746,9 +3778,7 @@ function showResumeButton() {
         `${CLASSES[st.selectedClass].name} ／ STAGE ${Math.floor((st.phase - 1) / 10) + 1}: ${stage ? stage.name : ''} ／ PHASE ${String(Math.min(st.phase, 100)).padStart(2, '0')}/100 ／ HP ${st.hp}`;
     box.classList.remove('hidden');
     const art = document.getElementById('title-art');
-    if (art) art.style.maxWidth = 'min(56rem, 58vh)'; // 「続きから」の分だけ絵を小さくして、1画面に収める
-    const title = document.getElementById('title-text');
-    if (title && window.matchMedia('(min-width: 768px)').matches) title.style.fontSize = '2.75rem'; // 絵が小さくなった分、タイトル文字も1行に収める
+    fitTitleScreen();
 }
 
 function resumeGame() {
@@ -3799,6 +3829,8 @@ window.onload = function() {
     renderCanvas();
     initClassSelectionUI();
     showResumeButton(); // 中断データがあれば「続きから遊ぶ」を出す
+    fitTitleScreen();
+    setTimeout(fitTitleScreen, 300); // フォントや画像の読み込み後にもう一度合わせる
     if (isAnalyticsOn()) { document.getElementById('analytics-note').classList.remove('hidden'); track('title', 'タイトル画面'); }
     // ホーム画面に追加した時・電波がない時のための仕組み（https で公開している時だけ）
     if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
