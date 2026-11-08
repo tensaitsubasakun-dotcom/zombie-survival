@@ -154,6 +154,17 @@
         </a>
     </div>
 
+    <!-- 1.5 エンディング画面 (クリア時に表示。文章が1行ずつ浮かび上がる) -->
+    <div id="ending-modal" class="hidden fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-6 overflow-y-auto">
+        <div class="max-w-xl w-full text-center">
+            <div id="ending-lines" class="space-y-4 text-sm md:text-base leading-relaxed text-slate-200"></div>
+            <div id="ending-buttons" class="mt-10 flex flex-col gap-2 opacity-0 transition-opacity duration-1000">
+                <button id="ending-title-btn" class="pixel-btn w-full py-2.5 px-4 rounded text-sm font-bold text-white bg-purple-900 hover:bg-purple-800">🔄 タイトル画面へ戻る</button>
+                <button id="ending-close-btn" class="pixel-btn w-full py-2 px-4 rounded text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700">📜 ゲーム画面に戻ってログを見る</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 2. ゲーム画面最上部：ステータスHUD (固定) -->
     <header class="md:h-[10vh] md:min-h-[65px] bg-slate-900 border-b-2 border-purple-900 px-3 md:px-4 py-1.5 md:py-2 flex flex-wrap md:flex-nowrap items-center justify-between gap-y-1 md:gap-y-2 z-10 shadow-md">
         <!-- 進行度情報 -->
@@ -3186,6 +3197,47 @@ function closeStashPanel() {
     document.body.classList.remove('in-shelter');
 }
 
+// ===== エンディング =====
+// 職業ごとに1行だけ変わる。ほかは共通の文章
+const ENDING_CLASS_LINE = {
+    police: '警察官だったあなたは、今も夜になると見張りに立ち、みんなの眠りを守っている。',
+    doctor: '医師だったあなたのもとには、毎日のようにけが人や病人がやってくる。',
+    civilian: 'ふつうの暮らしをしていたあなたも、今では畑を耕し、子どもたちに勉強を教えている。'
+};
+
+function getEndingLines() {
+    const classLine = ENDING_CLASS_LINE[state.selectedClass && state.selectedClass.id] || '';
+    return [
+        { text: '極変異体ホルゼインを倒し、救助のヘリで、あなたは燃える街をあとにした。' },
+        { text: 'たどり着いた避難所で、ずっと探していた家族の顔を見つけた。<br>名前を呼ぶより先に駆け寄って、ただ抱きしめ合った。' },
+        { text: '避難所では、生き残った人たちがお互いに協力しながら暮らしている。<br>食料を分け合い、けが人を手当てし、交代で夜を見張る。' },
+        { text: classLine },
+        { text: 'ゾンビのいない朝が、いつかまた来ると信じて。<br>あの何でもない毎日に戻れる日を、家族と一緒に祈りながら――' },
+        { text: 'THE END', cls: 'text-2xl md:text-4xl font-bold text-purple-300 tracking-widest pt-6 drop-shadow-[0_0_10px_rgba(168,85,247,0.8)]' },
+        { text: `生還おめでとう！　職業：${state.selectedClass ? state.selectedClass.name : ''} ／ 所持金 ${state.gold}G`, cls: 'text-xs text-slate-400' }
+    ].filter(l => l.text);
+}
+
+function showEnding() {
+    const modal = document.getElementById('ending-modal');
+    const box = document.getElementById('ending-lines');
+    const buttons = document.getElementById('ending-buttons');
+    box.innerHTML = '';
+    buttons.classList.add('opacity-0');
+    const lines = getEndingLines();
+    lines.forEach((l, i) => {
+        const p = document.createElement('p');
+        p.className = `opacity-0 transition-opacity duration-1000 ${l.cls || ''}`;
+        p.innerHTML = l.text;
+        box.appendChild(p);
+        setTimeout(() => p.classList.remove('opacity-0'), 600 + i * 2200); // 1行ずつ浮かび上がる
+    });
+    setTimeout(() => buttons.classList.remove('opacity-0'), 600 + lines.length * 2200);
+    document.getElementById('ending-title-btn').onclick = () => location.reload();
+    document.getElementById('ending-close-btn').onclick = () => modal.classList.add('hidden');
+    modal.classList.remove('hidden');
+}
+
 function checkGameOver() {
     clampStats();
     if (state.eventStatus === 'GAMEOVER' || state.eventStatus === 'CLEAR') return; // 二重判定防止
@@ -3202,6 +3254,7 @@ function checkGameOver() {
         updateHUD();
         addLog('【GAME CLEAR!!】 極変異体ホルゼインを倒し、100フェーズを生き延びて奇跡の脱出を果たした！！', 'success');
         renderActionButtons();
+        setTimeout(showEnding, 1500); // 少し余韻をおいてからエンディングへ
     }
 }
 
@@ -3312,6 +3365,7 @@ function renderActionButtons() {
     else if (state.eventStatus === 'GAMEOVER' || state.eventStatus === 'CLEAR') {
         const btn = createActionButton('🔄 タイトル画面へ戻る', () => location.reload(), 'bg-purple-900 hover:bg-purple-800');
         panel.appendChild(btn);
+        if (state.eventStatus === 'CLEAR') panel.appendChild(createActionButton('🎬 エンディングをもう一度見る', () => showEnding(), 'bg-indigo-900 hover:bg-indigo-800'));
         const fb = createActionButton('💡 修正案・バグ報告を送る', () => window.open(FEEDBACK_URL, '_blank', 'noopener'), 'bg-slate-800 hover:bg-slate-700');
         panel.appendChild(fb);
     }
