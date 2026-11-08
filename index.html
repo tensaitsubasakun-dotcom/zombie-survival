@@ -531,14 +531,15 @@ function closeExternal() { document.getElementById('external-modal').classList.a
 
 // ===== アクセス解析（GoatCounter：クッキーを使わず、個人を特定しない形で回数だけ数える） =====
 // 公開サイト（github.io）で遊ばれた時だけ送る。投稿サイトに置いた版やPCで直接開いた時は送らない
-const ANALYTICS_COUNT_URL = ''; // 例：'https://（自分のコード）.goatcounter.com/count'。空のあいだは何も送らない
+const ANALYTICS_COUNT_URL = 'https://zombie-survival-goethe.goatcounter.com/count'; // アクセス数は https://zombie-survival-goethe.goatcounter.com で見られる
 function isAnalyticsOn() {
     return !!ANALYTICS_COUNT_URL && /\.github\.io$/.test(location.hostname);
 }
-function track(path, title) {
+function track(path, title, isEvent = true) {
     if (!isAnalyticsOn()) return;
     try {
-        const q = new URLSearchParams({ p: path, t: title || path, e: 'true', rnd: Math.random().toString(36).slice(2) });
+        const q = new URLSearchParams({ p: path, t: title || path, rnd: Math.random().toString(36).slice(2) });
+        if (isEvent) q.set('e', 'true'); else { q.set('r', document.referrer || ''); q.set('s', `${screen.width},${screen.height},${window.devicePixelRatio || 1}`); }
         new Image().src = `${ANALYTICS_COUNT_URL}?${q.toString()}`;
     } catch (e) {}
 }
@@ -3831,7 +3832,7 @@ window.onload = function() {
     showResumeButton(); // 中断データがあれば「続きから遊ぶ」を出す
     fitTitleScreen();
     setTimeout(fitTitleScreen, 300); // フォントや画像の読み込み後にもう一度合わせる
-    if (isAnalyticsOn()) { document.getElementById('analytics-note').classList.remove('hidden'); track('title', 'タイトル画面'); }
+    if (isAnalyticsOn()) { document.getElementById('analytics-note').classList.remove('hidden'); track('/', 'ZOMBIE SURVIVAL', false); // 訪問数（ページビュー） }
     // ホーム画面に追加した時・電波がない時のための仕組み（https で公開している時だけ）
     if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
         navigator.serviceWorker.register('sw.js').catch(() => {});
