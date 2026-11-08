@@ -98,6 +98,9 @@
         @media (min-width: 768px) {
             body.in-shelter main { height: 48vh; }
             body.in-shelter footer { height: 42vh; }
+            /* 枠が低くなってもゲーム画面の絵の大きさは変えない（いつもと同じ高さで描き、上の空の部分だけ隠す） */
+            body.in-shelter #gameCanvas { height: calc(60vh - 20px); flex-shrink: 0; }
+            body.in-shelter main > div:first-child { align-items: flex-end; }
         }
 
         /* カスタムスクロールバー */
