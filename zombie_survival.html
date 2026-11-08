@@ -535,7 +535,7 @@ const ITEM_DB = {
     'shotgun': { id: 'shotgun', name: 'ショットガン', w: 3, h: 1, type: 'weapon', color: 'bg-red-950', border: 'border-red-600', icon: '💥', desc: '散弾銃。弾薬1発でハンドガン3発分の威力。ブルートやミュータントも一撃。大群には効かない。イベントかショップで入手。', eventOnly: true, shopSellable: true, metal: true },
     'rocket_launcher': { id: 'rocket_launcher', name: 'ロケットランチャー', w: 2, h: 3, type: 'weapon', color: 'bg-orange-950', border: 'border-orange-500', icon: '🚀', desc: 'どんな敵も一撃で吹き飛ばす。ゾンビの大群を倒せる唯一の武器。撃つと使い切り(弾薬不要)。イベントかショップで入手。', weight: 0.3, eventOnly: true, shopSellable: true, metal: true },
     'ammo': { id: 'ammo', name: '弾薬(5発)', w: 1, h: 1, type: 'ammo', color: 'bg-yellow-900', border: 'border-yellow-500', icon: '🟡', count: 5, maxCount: 12, stackable: true, desc: '銃の射撃に必要な弾丸。拾うと5発手に入る。1マスに12発までスタック可能(あふれた分は新しいマスに入る)。' },
-    'bandage': { id: 'bandage', name: '包帯', w: 2, h: 1, type: 'heal', color: 'bg-emerald-900', border: 'border-emerald-500', icon: '🩹', desc: '使用するとHPを40回復する。' },
+    'bandage': { id: 'bandage', name: '包帯', w: 2, h: 1, type: 'heal', color: 'bg-emerald-900', border: 'border-emerald-500', icon: '🩹', desc: '使用するとHPを30回復する。' },
     'medkit': { id: 'medkit', name: '救急箱', w: 2, h: 2, type: 'heal', color: 'bg-emerald-800', border: 'border-emerald-400', icon: '🧰', desc: '重傷を治療する。使用するとHPを80回復する。' },
     'antibiotics': { id: 'antibiotics', name: '抗生剤', w: 1, h: 1, type: 'heal', color: 'bg-purple-900', border: 'border-purple-500', icon: '💊', desc: '体内のウイルス増殖を抑え、汚染度を35%低下させる。' },
     'canned_food': { id: 'canned_food', name: '缶詰', w: 1, h: 1, type: 'food', color: 'bg-amber-900', border: 'border-amber-500', icon: '🥫', desc: '安全な保存食。使用すると空腹度を40回復する。' },
@@ -1315,8 +1315,8 @@ function useSelectedItem() {
     } else if (item.id === 'bear_trap') {
         if (!installBearTrap()) return;
     } else if (item.id === 'bandage') {
-        state.hp = Math.min(state.maxHp, state.hp + 40);
-        addLog('包帯を使用。HPが40回復した。', 'success');
+        state.hp = Math.min(state.maxHp, state.hp + 30); // 包帯の回復量
+        addLog('包帯を使用。HPが30回復した。', 'success');
         AudioFX.play('heal');
     } else if (item.id === 'medkit') {
         state.hp = Math.min(state.maxHp, state.hp + 80);
