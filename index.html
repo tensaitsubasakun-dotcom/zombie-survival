@@ -3832,7 +3832,7 @@ window.onload = function() {
     showResumeButton(); // 中断データがあれば「続きから遊ぶ」を出す
     fitTitleScreen();
     setTimeout(fitTitleScreen, 300); // フォントや画像の読み込み後にもう一度合わせる
-    if (isAnalyticsOn()) { document.getElementById('analytics-note').classList.remove('hidden'); track('/', 'ZOMBIE SURVIVAL', false); // 訪問数（ページビュー） }
+    if (isAnalyticsOn()) { document.getElementById('analytics-note').classList.remove('hidden'); track('/', 'ZOMBIE SURVIVAL', false); } // 訪問数（ページビュー）
     // ホーム画面に追加した時・電波がない時のための仕組み（https で公開している時だけ）
     if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
         navigator.serviceWorker.register('sw.js').catch(() => {});
