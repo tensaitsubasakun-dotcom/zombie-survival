@@ -571,6 +571,17 @@ const SHELTER_HP_HEAL = 20;        // セーフルーム到着時のHP回復量
 
 const SELL_RATE = 0.75;             // 売却価格 = 販売価格の3/4
 
+// 説明欄に足す「ショップでいくらで売れるか」の一文
+function getSellPriceText(item) {
+    const price = getSellPrice(item);
+    if (price === null) return '💱 ショップでは売れない。';
+    if (item.id === 'ammo') {
+        const unit = getSellPrice({ id: 'ammo', count: 1 });
+        return item.count ? `💱 売値：1発${unit}G（今の${item.count}発で${price}G）` : `💱 売値：1発${unit}G`;
+    }
+    return `💱 売値：${price}G`;
+}
+
 function getSellPrice(item) {
     const base = SELL_PRICES[item.id];
     if (base === undefined) return null; // 相場が決まっていないアイテムは売れない
@@ -1100,7 +1111,7 @@ function selectItem(instanceId, rerender = true) {
     if (item) {
         titleEl.innerHTML = `${itemIconHTML(item)} ${item.name}`;
         sizeEl.textContent = `サイズ: ${item.w}×${item.h}`;
-        descEl.textContent = item.desc;
+        descEl.textContent = `${item.desc} ${getSellPriceText(item)}`;
 
         btnRotate.disabled = false;
         btnUse.disabled = !getUseLabel(item);
@@ -1210,7 +1221,7 @@ function renderShelterItemInfo() {
     row.className = 'flex items-center justify-between gap-2 mt-0.5';
     const desc = document.createElement('p');
     desc.className = 'text-[11px] text-slate-300 leading-snug';
-    desc.textContent = item.desc;
+    desc.textContent = `${item.desc} ${getSellPriceText(item)}`;
     row.appendChild(desc);
     const label = getUseLabel(item);
     if (label) {
@@ -3020,7 +3031,7 @@ function getShopPreview(key) {
         const price = getBuyPrice('ammo');
         return {
             icon: ITEM_DB.ammo.icon, iconHTML: itemIconHTML(ITEM_DB.ammo), name: `弾薬(${SHOP_AMMO_PACK}発)【常設】`, size: '1×1', price,
-            desc: `${ITEM_DB.ammo.desc} ショップにいつも並んでいて、何度でも買える。`,
+            desc: `${ITEM_DB.ammo.desc} ショップにいつも並んでいて、何度でも買える。 ${getSellPriceText({ id: 'ammo', count: 0 })}`,
             disabledReason: state.gold < price ? 'G不足' : null,
             buy: () => buyAmmo()
         };
@@ -3032,7 +3043,7 @@ function getShopPreview(key) {
     const price = getBuyPrice(slot.id);
     return {
         icon: data.icon, iconHTML: itemIconHTML({ ...data, id: slot.id }), name: slot.id === 'ammo' ? `弾薬(${SHOP_AMMO_PACK}発)` : data.name,
-        size: `${data.w}×${data.h}`, price, desc: data.desc,
+        size: `${data.w}×${data.h}`, price, desc: `${data.desc} ${getSellPriceText({ ...data, id: slot.id, count: 0 })}`,
         disabledReason: slot.sold ? '売切' : state.gold < price ? 'G不足' : null,
         buy: () => buyShopItem(idx)
     };
