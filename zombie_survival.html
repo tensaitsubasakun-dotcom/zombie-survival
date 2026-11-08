@@ -111,6 +111,17 @@
             }
         }
 
+        /* ボス登場・撃破の演出 */
+        @keyframes bannerIn { from { opacity: 0; transform: scale(1.6); letter-spacing: 0.6em; } to { opacity: 1; transform: scale(1); } }
+        @keyframes warnBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+        @keyframes bannerOut { to { opacity: 0; transform: scale(0.9); } }
+        .banner-warn { color: #fecaca; font-weight: 900; font-size: clamp(18px, 5vw, 44px); letter-spacing: 0.25em; text-shadow: 0 0 12px #dc2626, 0 0 28px #dc2626; animation: bannerIn .35s ease-out, warnBlink .5s .35s 3; }
+        .banner-bar { width: 100%; background: rgba(127, 29, 29, 0.75); border-top: 2px solid #ef4444; border-bottom: 2px solid #ef4444; padding: 4px 0; }
+        .banner-sub { color: #e9d5ff; font-weight: 800; font-size: clamp(12px, 3vw, 24px); text-shadow: 0 0 10px #7e22ce; animation: bannerIn .5s ease-out; }
+        .banner-win { color: #fef08a; font-weight: 900; font-size: clamp(20px, 5.5vw, 48px); letter-spacing: 0.15em; text-shadow: 0 0 14px #f59e0b, 0 0 30px #f59e0b; animation: bannerIn .5s ease-out; }
+        .banner-out { animation: bannerOut .6s ease-in forwards; }
+        #ending-modal { transition: opacity 1.2s ease; }
+
         /* ステータスのドット絵アイコン（文字の大きさに合わせる） */
         .ui-icon { display: inline-block; width: 1.3em; height: 1.3em; object-fit: contain; image-rendering: pixelated; vertical-align: -0.3em; margin-right: 0.1em; }
 
@@ -247,6 +258,8 @@
         <div class="w-full md:w-1/2 h-[135px] md:h-full relative rounded border-2 border-slate-800 bg-black overflow-hidden flex items-center justify-center">
             <canvas id="gameCanvas" class="w-full h-full object-cover" style="object-position: center 80%;"></canvas>
             <div class="scanlines absolute inset-0 pointer-events-none"></div>
+            <!-- ボス登場・撃破の演出用の大きな文字 -->
+            <div id="canvas-banner" class="hidden absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center px-2"></div>
             <!-- Canvasオーバーレイテキスト (イベント通知等) -->
             <div id="canvas-overlay-text" class="absolute bottom-1 md:bottom-2 left-1 md:left-2 right-1 md:right-auto bg-black/70 px-2 md:px-3 py-0.5 md:py-1 rounded text-[10px] md:text-xs text-slate-300 border border-slate-700 pointer-events-none truncate">
                 環境: 降雨 / 遭遇率 標準
@@ -432,6 +445,35 @@ const AudioFX = {
                 gain.gain.setValueAtTime(0.2, now);
                 gain.gain.linearRampToValueAtTime(0, now + 0.3);
                 osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'roar') {
+                // ボスの咆哮：低い音がうなりながら下がっていく
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.linearRampToValueAtTime(220, now + 0.25);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 1.4);
+                gain.gain.setValueAtTime(0.0, now);
+                gain.gain.linearRampToValueAtTime(0.35, now + 0.15);
+                gain.gain.linearRampToValueAtTime(0, now + 1.4);
+                osc.start(now); osc.stop(now + 1.4);
+            } else if (type === 'boom') {
+                // 撃破の爆発音
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(90, now);
+                osc.frequency.exponentialRampToValueAtTime(20, now + 0.9);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+                osc.start(now); osc.stop(now + 0.9);
+            } else if (type === 'fanfare') {
+                // 勝利のファンファーレ（ド・ミ・ソ・ド）
+                osc.disconnect();
+                [523, 659, 784, 1047].forEach((f, i) => {
+                    const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+                    o.type = 'square'; o.connect(g); g.connect(this.ctx.destination);
+                    const t = now + i * 0.16, len = i === 3 ? 0.6 : 0.14;
+                    o.frequency.setValueAtTime(f, t);
+                    g.gain.setValueAtTime(0.12, t); g.gain.linearRampToValueAtTime(0, t + len);
+                    o.start(t); o.stop(t + len);
+                });
             }
         } catch(e) {}
     }
@@ -1524,15 +1566,28 @@ function renderCanvas() {
         drawScaledZombie(330, 240, 2, animTick, null); // 専用の絵がない大型ゾンビは2倍の大きさ
     } else if (state.eventStatus === 'ENCOUNTER') {
         drawPixelZombie(320, 248, animTick, state.currentEnemy ? state.currentEnemy.type : 'normal'); // 足元が地面(y=240)に来る位置
-    } else if (state.eventStatus === 'BOSS') {
-        if (ENEMY_SPRITES.boss) drawPixelZombie(320, 248, animTick, 'boss'); // ホルゼイン専用の絵
-        else drawScaledZombie(330, 240, 2, animTick, '#7e22ce');
+    } else if (state.eventStatus === 'BOSS' || (state.eventStatus === 'CLEAR' && bossDeathStart)) {
+        const fx = getBossFxOffset();
+        ctx.save();
+        if (fx.shake) ctx.translate((Math.random() - 0.5) * fx.shake * 2, (Math.random() - 0.5) * fx.shake * 2);
+        if (fx.dying !== undefined) {
+            // 撃破：白く点滅しながら沈んで消えていく
+            ctx.globalAlpha = Math.max(0, 1 - fx.dying);
+            ctx.translate(0, fx.dying * 30);
+            if (Math.floor(animTick / 3) % 2 === 0 && fx.dying < 1) ctx.filter = 'brightness(3)';
+        }
+        if (fx.dying === undefined || fx.dying < 1) {
+            if (ENEMY_SPRITES.boss) drawPixelZombie(320 + fx.bossX, 248, animTick, 'boss'); // ホルゼイン専用の絵
+            else drawScaledZombie(330 + fx.bossX, 240, 2, animTick, '#7e22ce');
+        }
+        ctx.restore();
     } else if (state.eventStatus === 'SHELTER') {
         drawShelterTent(340, 240); // 地面(y=240)にテントを立てる
     }
 
     // 雨・環境パーティクル
     drawWeatherParticles(stageIdx, animTick);
+    drawBossFxOverlay();
 
     animFrameId = requestAnimationFrame(renderCanvas);
 }
@@ -2759,12 +2814,105 @@ function executeExtinguisherFlee() {
 }
 
 // ---------- ボス戦：極変異体ホルゼイン ----------
+// ===== ボス登場・撃破の演出 =====
+const BOSS_INTRO_MS = 3200;   // 登場演出の長さ（この間は行動ボタンを出さない）
+const BOSS_DEATH_MS = 4200;   // 撃破演出の長さ（このあとエンディングへ）
+let bossIntroStart = 0;
+let bossDeathStart = 0;
+
+function isBossIntroPlaying() { return bossIntroStart && performance.now() - bossIntroStart < BOSS_INTRO_MS; }
+
+let bannerTimers = [];
+function showCanvasBanner(html, ms) {
+    const el = document.getElementById('canvas-banner');
+    if (!el) return;
+    el.innerHTML = html;
+    el.classList.remove('hidden');
+    if (ms) bannerTimers.push(setTimeout(() => {
+        el.firstElementChild && [...el.children].forEach(c => c.classList.add('banner-out'));
+        bannerTimers.push(setTimeout(() => el.classList.add('hidden'), 600));
+    }, ms));
+}
+function clearCanvasBanner() {
+    bannerTimers.forEach(clearTimeout); bannerTimers = [];
+    const el = document.getElementById('canvas-banner');
+    if (el) { el.classList.add('hidden'); el.innerHTML = ''; }
+}
+
+function playBossIntro() {
+    clearCanvasBanner();
+    bossIntroStart = performance.now();
+    AudioFX.play('alarm');
+    setTimeout(() => AudioFX.play('alarm'), 350);
+    setTimeout(() => AudioFX.play('alarm'), 700);
+    showCanvasBanner(`<div class="banner-bar"><div class="banner-warn">⚠ WARNING ⚠</div></div>`);
+    bannerTimers.push(setTimeout(() => {
+        AudioFX.play('roar');
+        showCanvasBanner(`<div class="banner-sub">極変異体</div><div class="banner-warn" style="letter-spacing:.1em">ホルゼイン</div>`, 1300);
+    }, 1500));
+    // 演出が終わったら行動ボタンを出す
+    setTimeout(() => { if (state.eventStatus === 'BOSS') renderActionButtons(); }, BOSS_INTRO_MS + 50);
+}
+
+function playBossDeath() {
+    clearCanvasBanner();
+    bossDeathStart = performance.now();
+    AudioFX.play('boom');
+    setTimeout(() => AudioFX.play('boom'), 450);
+    setTimeout(() => AudioFX.play('roar'), 200);
+    bannerTimers.push(setTimeout(() => { AudioFX.play('fanfare'); showCanvasBanner(`<div class="banner-win">ホルゼイン撃破！</div>`, 1500); }, 1300));
+    bannerTimers.push(setTimeout(() => showCanvasBanner(`<div class="banner-sub">救助ヘリが、こちらに向かってくる──</div>`), 3000));
+}
+
+// Canvasに描く演出（画面のゆれ・フラッシュ・ボスの出入り）
+function getBossFxOffset() {
+    const now = performance.now();
+    if (state.eventStatus === 'BOSS' && isBossIntroPlaying()) {
+        const t = now - bossIntroStart;
+        // 1.5秒後に右から歩いて現れる
+        if (t < 1500) return { bossX: 400, shake: t < 1200 ? 2 : 0 };
+        const k = Math.min(1, (t - 1500) / 900);
+        return { bossX: Math.round(400 * (1 - k) * (1 - k)), shake: 7 * (1 - k) + 2 };
+    }
+    if (state.eventStatus === 'CLEAR' && bossDeathStart) {
+        const t = now - bossDeathStart;
+        if (t < 1600) return { bossX: 0, shake: 8 * (1 - t / 1600), dying: t / 1600 };
+        return { bossX: 0, dying: 1 };
+    }
+    return { bossX: 0, shake: 0 };
+}
+
+function drawBossFxOverlay() {
+    const now = performance.now();
+    if (state.eventStatus === 'BOSS' && isBossIntroPlaying()) {
+        const t = now - bossIntroStart;
+        // 警告の赤い明滅
+        if (t < 1500) {
+            ctx.fillStyle = `rgba(220, 38, 38, ${0.12 + 0.12 * Math.sin(t / 60)})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+    if (state.eventStatus === 'CLEAR' && bossDeathStart) {
+        const t = now - bossDeathStart;
+        // 撃破の白いフラッシュ
+        if (t < 500) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${0.85 * (1 - t / 500)})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        // 最後はだんだん暗くしてエンディングへ
+        if (t > BOSS_DEATH_MS - 1200) {
+            ctx.fillStyle = `rgba(2, 6, 23, ${Math.min(1, (t - (BOSS_DEATH_MS - 1200)) / 1200)})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+}
+
 function triggerBoss() {
     state.eventStatus = 'BOSS';
     state.boss = { hp: BOSS.hp, maxHp: BOSS.hp, turn: 1, evadeMenu: false, nextAttack: rollBossAttack() };
     addLog(`【最終フェーズ】 ${BOSS.icon} 脱出地点に極変異体「ホルゼイン」が出現した！！ 滞在フェーズが強制+10され、この戦闘中は空腹度が減らない。`, 'danger');
     announceBossAttack();
-    AudioFX.play('alarm');
+    playBossIntro();
 }
 
 function rollBossAttack() {
@@ -2816,6 +2964,7 @@ function bossAttack(weaponId) {
             state.gold += KILL_REWARD;
             addLog(`${weapon.icon} ${weapon.name}が直撃！ ${BOSS.icon} ホルゼインを討伐した！！ 💰+${KILL_REWARD}G`, 'success');
             state.phase = 101; // クリア判定へ
+            playBossDeath();
             finishFightTurn();
             return;
         }
@@ -2849,6 +2998,13 @@ function bossEvade(itemId) {
 }
 
 function renderBossButtons(panel) {
+    if (isBossIntroPlaying()) {
+        const wait = document.createElement('div');
+        wait.className = 'text-center text-sm font-bold text-red-300 py-3 animate-pulse';
+        wait.textContent = '……何かが、近づいてくる。';
+        panel.appendChild(wait);
+        return;
+    }
     const b = state.boss;
     const a = b.nextAttack;
     const info = document.createElement('div');
@@ -3263,7 +3419,9 @@ function showEnding() {
     setTimeout(() => buttons.classList.remove('opacity-0'), 600 + lines.length * 2200);
     document.getElementById('ending-title-btn').onclick = () => location.reload();
     document.getElementById('ending-close-btn').onclick = () => modal.classList.add('hidden');
+    modal.style.opacity = '0';
     modal.classList.remove('hidden');
+    requestAnimationFrame(() => requestAnimationFrame(() => { modal.style.opacity = '1'; }));
 }
 
 function checkGameOver() {
@@ -3283,7 +3441,7 @@ function checkGameOver() {
         updateHUD();
         addLog('【GAME CLEAR!!】 極変異体ホルゼインを倒し、100フェーズを生き延びて奇跡の脱出を果たした！！', 'success');
         renderActionButtons();
-        setTimeout(showEnding, 1500); // 少し余韻をおいてからエンディングへ
+        setTimeout(showEnding, bossDeathStart ? BOSS_DEATH_MS : 1500); // 撃破演出が終わってからエンディングへ
     }
 }
 
