@@ -631,13 +631,22 @@ function autoAddItemToInventory(itemDbId, customCount = null) {
     let addCount = customCount !== null ? customCount : (baseData.id === 'ammo' ? AMMO_PER_PICKUP : (baseData.count || 1));
 
     // 空いているマスを探す（見つからなければ null）
-    const findSpot = (item, placed) => {
+    // そのままの向きで入らない時は、向きを変えて（縦長なら横向きにして）入る場所を探す
+    const findSpotIn = (item, placed) => {
         for (let y = 0; y <= state.rows - item.h; y++) {
             for (let x = 0; x <= state.cols - item.w; x++) {
                 if (canPlaceItem(placed, item, x, y)) return { x, y };
             }
         }
         return null;
+    };
+    const findSpot = (item, placed) => {
+        const spot = findSpotIn(item, placed);
+        if (spot) return { ...spot, w: item.w, h: item.h };
+        if (item.w === item.h) return null;
+        const turned = { ...item, w: item.h, h: item.w };
+        const spot2 = findSpotIn(turned, placed);
+        return spot2 ? { ...spot2, w: turned.w, h: turned.h } : null;
     };
 
     // 弾薬などスタック可能な場合：今あるマスを上限まで埋め、あふれた分は新しいマスに入れる
@@ -661,7 +670,7 @@ function autoAddItemToInventory(itemDbId, customCount = null) {
             const item = { ...baseData, instanceId: generateId(), count, x: 0, y: 0 };
             const spot = findSpot(item, placed);
             if (!spot) return false;
-            item.x = spot.x; item.y = spot.y;
+            item.x = spot.x; item.y = spot.y; item.w = spot.w; item.h = spot.h;
             placed.push(item);
             newStacks.push(item);
             remaining -= count;
@@ -673,8 +682,8 @@ function autoAddItemToInventory(itemDbId, customCount = null) {
 
     const newItem = { ...baseData, instanceId: generateId(), count: undefined, x: 0, y: 0 };
     const spot = findSpot(newItem, state.inventory);
-    if (!spot) return false; // 空きなし
-    newItem.x = spot.x; newItem.y = spot.y;
+    if (!spot) return false; // 空きなし（どちらの向きでも入らない）
+    newItem.x = spot.x; newItem.y = spot.y; newItem.w = spot.w; newItem.h = spot.h;
     state.inventory.push(newItem);
     return true;
 }
