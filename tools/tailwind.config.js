@@ -1,1 +1,1 @@
-module.exports = { content: [require('path').join(__dirname, '..', 'zombie_survival.html')], theme: { extend: {} }, plugins: [] };
+module.exports = { content: [require('path').join(__dirname, '..', 'index.html')], theme: { extend: {} }, plugins: [] };

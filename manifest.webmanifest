@@ -3,7 +3,7 @@
   "short_name": "ZOMBIE SURVIVAL",
   "description": "100フェーズを生き延びろ。限られたカバンにアイテムを詰めて、ゾンビだらけの街から脱出するドット絵のブラウザゲーム。",
   "lang": "ja",
-  "start_url": "zombie_survival.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",

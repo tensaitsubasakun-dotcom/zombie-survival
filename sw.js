@@ -1,8 +1,8 @@
 // ZOMBIE SURVIVAL のサービスワーカー
 // ・いつもはネットから最新版を読み込み、読み込めた分を保存しておく（更新がすぐ反映される）
 // ・電波がない時は、保存しておいた版で遊べる
-const CACHE = 'zombie-survival-v1';
-const CORE = ['./', 'index.html', 'zombie_survival.html', 'manifest.webmanifest', 'favicon-32.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'];
+const CACHE = 'zombie-survival-v2';
+const CORE = ['./', 'index.html', 'manifest.webmanifest', 'favicon-32.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));
@@ -26,6 +26,6 @@ self.addEventListener('fetch', (e) => {
         caches.open(CACHE).then((c) => c.put(req, copy));
       }
       return res;
-    }).catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || caches.match('zombie_survival.html')))
+    }).catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || caches.match('index.html')))
   );
 });
