@@ -1,4 +1,4 @@
-# ZOMBIE SURVIVAL
+# ZOMBIE SURVIVAL 100
 
 カバン(グリッド)管理型のゾンビサバイバル・ローグライト。HTML1ファイルで動くブラウザゲーム。
 

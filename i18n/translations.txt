@@ -387,7 +387,7 @@ G不足 ¦ Not enough G ¦ G不足
 💡 修正案・バグ報告を送る ¦ 💡 Send ideas / bug reports ¦ 💡 提交改进建议·错误报告
 【再開】 中断したところから再開した。 ¦ [Resumed] Picked up where you left off. ¦ 【继续】 从中断的地方继续了。
 中断から再開 ¦ Resume from suspend ¦ 从中断处继续
-ZOMBIE SURVIVAL - ゾンビサバイバル ¦ ZOMBIE SURVIVAL ¦ ZOMBIE SURVIVAL - 僵尸生存
+ZOMBIE SURVIVAL 100 - ゾンビサバイバル100 ¦ ZOMBIE SURVIVAL 100 ¦ ZOMBIE SURVIVAL 100 - 僵尸生存100
 生き残れ。100フェーズの絶望を、カバンの知恵で突破せよ。 ¦ Survive. Break through 100 phases of despair with a smartly packed bag. ¦ 活下去。用背包的智慧，突破100个阶段的绝望。
 ▶ 続きから遊ぶ ¦ ▶ Continue ¦ ▶ 继续游戏
 ※ 新しく始めると、中断したデータは消えます ¦ * Starting a new game deletes your suspended save ¦ ※ 开始新游戏会删除中断的存档
@@ -442,12 +442,12 @@ GoatCounter（クッキーを使わず、個人を特定しない形で数えて
 💬 感想・バグ報告を送る ¦ 💬 Send feedback / bug reports ¦ 💬 发送感想·错误报告
 送りやすい方法を選んでください ¦ Choose whichever way is easiest for you ¦ 请选择方便的方式
 📝 フォームで送る（アカウント不要） ¦ 📝 Use the form (no account needed) ¦ 📝 通过表单发送（无需账号）
-𝕏 でポストする（#ゾンビサバイバル） ¦ 𝕏 Post on X (#ゾンビサバイバル) ¦ 𝕏 在X上发帖（#ゾンビサバイバル）
+𝕏 でポストする（#ゾンビサバイバル100） ¦ 𝕏 Post on X (#ゾンビサバイバル100) ¦ 𝕏 在X上发帖（#ゾンビサバイバル100）
 🐙 GitHub で送る（GitHub のアカウントが必要） ¦ 🐙 Send on GitHub (needs a GitHub account) ¦ 🐙 通过GitHub发送（需要GitHub账号）
 𝕏 結果をシェアする ¦ 𝕏 Share your result ¦ 𝕏 分享结果
-ZOMBIE SURVIVAL の感想： ¦ My thoughts on ZOMBIE SURVIVAL: ¦ ZOMBIE SURVIVAL 的感想：
-ZOMBIE SURVIVAL を{}でクリア！極変異体ホルゼインを倒し、100フェーズを生き延びて脱出した🚁 ¦ Cleared ZOMBIE SURVIVAL as a {}! Defeated the Apex Mutant Holzein, survived 100 phases and escaped🚁 ¦ 以{}通关了 ZOMBIE SURVIVAL！打倒极变异体霍尔泽因，撑过100个阶段成功逃脱🚁
-ZOMBIE SURVIVAL で{}として出撃し、ステージ{}「{}」のフェーズ{}で{} ¦ Went into ZOMBIE SURVIVAL as a {0} and, at Stage {1} "{2}", Phase {3}, {4} ¦ 在 ZOMBIE SURVIVAL 中以{0}出发，在关卡{1}「{2}」的第{3}阶段{4}
+ZOMBIE SURVIVAL 100 の感想： ¦ My thoughts on ZOMBIE SURVIVAL 100: ¦ ZOMBIE SURVIVAL 100 的感想：
+ZOMBIE SURVIVAL 100 を{}でクリア！極変異体ホルゼインを倒し、100フェーズを生き延びて脱出した🚁 ¦ Cleared ZOMBIE SURVIVAL 100 as a {}! Defeated the Apex Mutant Holzein, survived 100 phases and escaped🚁 ¦ 以{}通关了 ZOMBIE SURVIVAL 100！打倒极变异体霍尔泽因，撑过100个阶段成功逃脱🚁
+ZOMBIE SURVIVAL 100 で{}として出撃し、ステージ{}「{}」のフェーズ{}で{} ¦ Went into ZOMBIE SURVIVAL 100 as a {0} and, at Stage {1} "{2}", Phase {3}, {4} ¦ 在 ZOMBIE SURVIVAL 100 中以{0}出发，在关卡{1}「{2}」的第{3}阶段{4}
 ゾンビになってしまった…🧟 ¦ turned into a zombie...🧟 ¦ 变成了僵尸…🧟
 飢えて倒れた…🍖 ¦ starved to death...🍖 ¦ 饿倒了…🍖
 ゾンビにやられた…💀 ¦ got killed by zombies...💀 ¦ 被僵尸杀死了…💀
