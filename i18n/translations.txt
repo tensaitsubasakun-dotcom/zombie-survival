@@ -421,3 +421,21 @@ STAGE 1: 農場 ¦ STAGE 1: Farm ¦ STAGE 1: 农场
 🔄 回転 ¦ 🔄 Rotate ¦ 🔄 旋转
 ショップ ¦ Shop ¦ 商店
 【GAME OVER】 {} ¦ [GAME OVER] {} ¦ 【GAME OVER】 {}
+📜 クレジット・ライセンス ¦ 📜 Credits & License ¦ 📜 制作人员·许可
+ゲーム制作 ¦ Game ¦ 游戏制作
+森本翼 ¦ Tsubasa Morimoto ¦ 森本翼
+画像 ¦ Images ¦ 图像
+キャラクター・敵・アイテム・背景・タイトルの絵は、ChatGPT の画像生成で作り、ゲーム用に調整しました。 ¦ The characters, enemies, items, backgrounds and title art were made with ChatGPT image generation and adjusted for the game. ¦ 角色、敌人、物品、背景和标题图均使用 ChatGPT 的图像生成功能制作，并为游戏做了调整。
+フォント ¦ Font ¦ 字体
+DotGothic16（Fontworks / SIL Open Font License 1.1） ¦ DotGothic16 (Fontworks / SIL Open Font License 1.1) ¦ DotGothic16（Fontworks / SIL Open Font License 1.1）
+絵文字 ¦ Emoji ¦ 表情符号
+お使いの端末の絵文字で表示しています。 ¦ Shown with your device's own emoji. ¦ 使用您设备自带的表情符号显示。
+効果音 ¦ Sound ¦ 音效
+ブラウザの音の機能（Web Audio）で、その場で鳴らしています。 ¦ Generated on the fly with the browser's Web Audio feature. ¦ 通过浏览器的音频功能（Web Audio）实时生成。
+見た目 ¦ Styling ¦ 样式
+Tailwind CSS（MIT License） ¦ Tailwind CSS (MIT License) ¦ Tailwind CSS（MIT License）
+アクセス解析 ¦ Analytics ¦ 访问统计
+GoatCounter（クッキーを使わず、個人を特定しない形で数えています） ¦ GoatCounter (counts anonymously, without cookies) ¦ GoatCounter（不使用Cookie，以不识别个人身份的方式统计）
+ライセンス ¦ License ¦ 许可
+このゲームのコードと画像は MIT ライセンスです。著作権の表示を残せば、自由に使ったり、作りかえたりできます。 ¦ This game's code and images are under the MIT License. You're free to use and modify them as long as you keep the copyright notice. ¦ 本游戏的代码和图像采用 MIT 许可。只要保留版权声明，就可以自由使用和修改。
+閉じる ¦ Close ¦ 关闭
