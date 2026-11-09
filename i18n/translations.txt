@@ -117,7 +117,7 @@
 🍽️【自動】空腹で倒れそうになり、 ¦ 🍽️ [Auto] About to collapse from hunger — ¦ 🍽️【自动】饿得快要倒下，
 保管庫から ¦  from the stash ¦ 从仓库中
 「{}」を{}捨てた。 ¦ Discarded "{0}"{1}. ¦ {1}丢弃了「{0}」。
-{}で出撃する (GAME START) ¦ Deploy as {} (GAME START) ¦ 以{}出发 (GAME START)
+{}で出撃する ¦ Deploy as {} ¦ 以{}出发
 ✓ 選択中 ¦ ✓ Selected ¦ ✓ 已选择
 初期カバン: {}×{} ({}マス) ¦ Starting bag: {}×{} ({} slots) ¦ 初始背包: {}×{} ({}格)
 【ゲーム開始】 職業: {} で出撃した。100フェーズの生還を目指せ！ ¦ [GAME START] Deployed as a {}. Survive all 100 phases! ¦ 【游戏开始】 以{}的身份出发。目标是撑过100个阶段生还！
@@ -391,7 +391,7 @@ ZOMBIE SURVIVAL - ゾンビサバイバル ¦ ZOMBIE SURVIVAL ¦ ZOMBIE SURVIVAL
 生き残れ。100フェーズの絶望を、カバンの知恵で突破せよ。 ¦ Survive. Break through 100 phases of despair with a smartly packed bag. ¦ 活下去。用背包的智慧，突破100个阶段的绝望。
 ▶ 続きから遊ぶ ¦ ▶ Continue ¦ ▶ 继续游戏
 ※ 新しく始めると、中断したデータは消えます ¦ * Starting a new game deletes your suspended save ¦ ※ 开始新游戏会删除中断的存档
-出撃準備完了 (GAME START) ¦ Ready to deploy (GAME START) ¦ 准备出发 (GAME START)
+出撃準備完了 ¦ Ready to deploy ¦ 准备出发
 💡 修正案・バグ報告を送る (GitHub) ¦ 💡 Send ideas / bug reports (GitHub) ¦ 💡 提交改进建议·错误报告 (GitHub)
 ゲームの改善のため、遊ばれた回数や到達したステージを、個人を特定しない形で記録しています（クッキーは使っていません） ¦ To improve the game, we record play counts and stages reached anonymously (no cookies are used) ¦ 为了改进游戏，我们以不识别个人身份的方式记录游玩次数和到达的关卡（不使用Cookie）
 外部のサイトを開きます ¦ Opening an external site ¦ 即将打开外部网站
