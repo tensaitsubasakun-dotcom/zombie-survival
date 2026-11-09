@@ -1,7 +1,7 @@
 // ZOMBIE SURVIVAL 100 のサービスワーカー
 // ・いつもはネットから最新版を読み込み、読み込めた分を保存しておく（更新がすぐ反映される）
 // ・電波がない時は、保存しておいた版で遊べる
-const CACHE = 'zombie-survival-v10';
+const CACHE = 'zombie-survival-v11';
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'favicon-32.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {
