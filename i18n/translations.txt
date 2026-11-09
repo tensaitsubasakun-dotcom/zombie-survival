@@ -452,3 +452,4 @@ ZOMBIE SURVIVAL 100 で{}として出撃し、ステージ{}「{}」のフェー
 飢えて倒れた…🍖 ¦ starved to death...🍖 ¦ 饿倒了…🍖
 ゾンビにやられた…💀 ¦ got killed by zombies...💀 ¦ 被僵尸杀死了…💀
 あなたは100フェーズ生き残れる？ ¦ Can you survive 100 phases? ¦ 你能撑过100个阶段吗？
+☕ 開発者を支援する（投げ銭） ¦ ☕ Support the developers (tip) ¦ ☕ 支持开发者（打赏）
