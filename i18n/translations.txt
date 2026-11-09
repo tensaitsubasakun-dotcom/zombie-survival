@@ -395,7 +395,7 @@ ZOMBIE SURVIVAL - ゾンビサバイバル ¦ ZOMBIE SURVIVAL ¦ ZOMBIE SURVIVAL
 💡 修正案・バグ報告を送る (GitHub) ¦ 💡 Send ideas / bug reports (GitHub) ¦ 💡 提交改进建议·错误报告 (GitHub)
 ゲームの改善のため、遊ばれた回数や到達したステージを、個人を特定しない形で記録しています（クッキーは使っていません） ¦ To improve the game, we record play counts and stages reached anonymously (no cookies are used) ¦ 为了改进游戏，我们以不识别个人身份的方式记录游玩次数和到达的关卡（不使用Cookie）
 外部のサイトを開きます ¦ Opening an external site ¦ 即将打开外部网站
-ゲームの外のページ（GitHub）が新しいタブで開きます。よろしいですか？ ¦ A page outside the game (GitHub) will open in a new tab. Continue? ¦ 将在新标签页中打开游戏外的页面（GitHub）。确定吗？
+ゲームの外のページが新しいタブで開きます。よろしいですか？ ¦ A page outside the game will open in a new tab. Continue? ¦ 将在新标签页中打开游戏外的页面。确定吗？
 やめる ¦ Cancel ¦ 取消
 開く ¦ Open ¦ 打开
 📜 ゲーム画面に戻ってログを見る ¦ 📜 Back to the game to read the log ¦ 📜 返回游戏画面查看日志
@@ -439,3 +439,16 @@ GoatCounter（クッキーを使わず、個人を特定しない形で数えて
 ライセンス ¦ License ¦ 许可
 このゲームのコードと画像は MIT ライセンスです。著作権の表示を残せば、自由に使ったり、作りかえたりできます。 ¦ This game's code and images are under the MIT License. You're free to use and modify them as long as you keep the copyright notice. ¦ 本游戏的代码和图像采用 MIT 许可。只要保留版权声明，就可以自由使用和修改。
 閉じる ¦ Close ¦ 关闭
+💬 感想・バグ報告を送る ¦ 💬 Send feedback / bug reports ¦ 💬 发送感想·错误报告
+送りやすい方法を選んでください ¦ Choose whichever way is easiest for you ¦ 请选择方便的方式
+📝 フォームで送る（アカウント不要） ¦ 📝 Use the form (no account needed) ¦ 📝 通过表单发送（无需账号）
+𝕏 でポストする（#ゾンビサバイバル） ¦ 𝕏 Post on X (#ゾンビサバイバル) ¦ 𝕏 在X上发帖（#ゾンビサバイバル）
+🐙 GitHub で送る（GitHub のアカウントが必要） ¦ 🐙 Send on GitHub (needs a GitHub account) ¦ 🐙 通过GitHub发送（需要GitHub账号）
+𝕏 結果をシェアする ¦ 𝕏 Share your result ¦ 𝕏 分享结果
+ZOMBIE SURVIVAL の感想： ¦ My thoughts on ZOMBIE SURVIVAL: ¦ ZOMBIE SURVIVAL 的感想：
+ZOMBIE SURVIVAL を{}でクリア！極変異体ホルゼインを倒し、100フェーズを生き延びて脱出した🚁 ¦ Cleared ZOMBIE SURVIVAL as a {}! Defeated the Apex Mutant Holzein, survived 100 phases and escaped🚁 ¦ 以{}通关了 ZOMBIE SURVIVAL！打倒极变异体霍尔泽因，撑过100个阶段成功逃脱🚁
+ZOMBIE SURVIVAL で{}として出撃し、ステージ{}「{}」のフェーズ{}で{} ¦ Went into ZOMBIE SURVIVAL as a {0} and, at Stage {1} "{2}", Phase {3}, {4} ¦ 在 ZOMBIE SURVIVAL 中以{0}出发，在关卡{1}「{2}」的第{3}阶段{4}
+ゾンビになってしまった…🧟 ¦ turned into a zombie...🧟 ¦ 变成了僵尸…🧟
+飢えて倒れた…🍖 ¦ starved to death...🍖 ¦ 饿倒了…🍖
+ゾンビにやられた…💀 ¦ got killed by zombies...💀 ¦ 被僵尸杀死了…💀
+あなたは100フェーズ生き残れる？ ¦ Can you survive 100 phases? ¦ 你能撑过100个阶段吗？
