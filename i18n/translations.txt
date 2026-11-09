@@ -407,7 +407,7 @@ STAGE 1: 農場 ¦ STAGE 1: Farm ¦ STAGE 1: 农场
 環境: 降雨 / 遭遇率 標準 ¦ Conditions: Rain / Encounter rate: normal ¦ 环境: 降雨 / 遭遇率 标准
 カバン ( ¦ Bag ( ¦ 背包 (
 5×3=15マス ¦ 5×3=15 slots ¦ 5×3=15格
-👆 置きたいマスをタップで移動 ¦ 👆 Tap a slot to move it there ¦ 👆 点击想放置的格子来移动
+👆 タップで移動 ¦ 👆 Tap to move ¦ 👆 点击移动
 使用: 0/15 ¦ Used: 0/15 ¦ 已用: 0/15
 回避: ¦ Evasion: ¦ 闪避:
 遭遇: ¦ Encounter: ¦ 遭遇:
