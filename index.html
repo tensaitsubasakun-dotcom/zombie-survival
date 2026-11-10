@@ -2384,6 +2384,15 @@ const DEATH_STYLE = {
     infection: { flash: '#84cc16', body: '#4d7c0f', bodyA: 0.55, pool: ['#365314', '#4d7c0f'], screen: 'rgba(101,163,13,' },
     hunger:    { flash: '#e2e8f0', body: '#94a3b8', bodyA: 0.45, pool: null,                   screen: 'rgba(148,163,184,' },
 };
+// やられた主人公の絵（倒れた姿・ゾンビになった姿）。倒れた絵は頭が左・足が右、いちばん下の行が地面
+function makeImg(src) { const img = new Image(); img.src = src; return img; }
+const PLAYER_DEATH_SPRITES = {
+    police: { down: makeImg('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACUAAAAKCAYAAAAzZJfgAAAC00lEQVR4Xp1TTUhUURT+zn3vSQRB0ug4Nk3jjDM1av4hUYt0dBGR+EctbKSV1MZc1K5FBm2jnbhrESiE/ZDWItqUUKuyUjTKIaQxRRujPxc5M++duPeOilA4dhfvwbvnfOf7OQ/YxvEEDvI2yv/7UK6d7pIQ17oIRAKvlmwIMw+cWQUYIGsHFj9O5Yy11ckJqNAX5jo3QRBjqK8TbGvDhGWB2UG4Z0gyw9Lsu5zwtjrmVgVufwUbvAqRHUdEIFPgwIXb+DDQBYLATH8M4d47CqrIH2GHMxqWWNWzA91HFhZnp/9J3O0PM5EB8TdSbl+IC/YG2OULspP5jdoiY6NsDZIIYO0YgxAf6MKvlWUWQqC6sQM1TR1YuBvE/HAAlfVtqIq2wbHTaDp7iYsCEfaUlG/aT/f+MOcX+sCOvRGfVJjJrIIMAzWN7QCTUvrmyQPUFRMsQ6iohq52glmq1vslkeV30dCDU73XZQuUVHUhBxAcOYaBt09HUN3UroQ4jrQPmHw2uk4i3+3Dt6WEjq/AG+TKaIt2gwGp9uH5l2i9eQTJhTi9NkN82CMjEIhdG9b7JAiDV85kHWSc7r2hohRC83HYwdTzx2AIlB09rgfLBzNIGKpOFlZHNUl5N/d+AiChSclaQQLCMjDSPa7U+WKL2Ln7BUpro/xjeR5fV1Jw7cqTEhXpwb6YspozaUQu3seh+haYloXRc+M4OVCpBFQca4YwTQy3WWDbRmgMSMxMS3WKkcTxBss2VoO162axP8KJe37AnlC7Udr9EwRGKp1CKjmP5UScPP4y/p5m7GGoKIgZrZdvSX5gh2FnBCbHHqGqoRkn+sulT9oJOUXFRIBhrDsloxNESH6ewb5gBLbcTdsGw8luKACXt1QtHQmCbdswDAPJRHzTX1LgC2UXU6tkx1H1cre+fNK1Lm+QSbMBy5jUnyfjWutZM0VC6W/yLe81nu79AwwnF4id3NDSAAAAAElFTkSuQmCC'), zombie: makeImg('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABMAAAAdCAYAAABIWle8AAADvElEQVR4Xo1VTW9TVxA9c5+Dumt3xHwFOziJA6SASBOMhIAEElBbNahxWHRRFlDYAG1BVRbtClQkfgAgBBsWEAIIkFolUtXSRQmoRBSBEzByzIdqAxKIFUIK7041c+3E8TN1jvRkv3fvO/fMzJl5hFmgtq6ByRjdSUT6m5sYd39KEHhQinA0zgRG++YkTHEnASPDF2CZkS8jrEg2b3GcLXwkurfDCAsXFTHO7h4FM6OuZyKgzmkvh2El0pOKRMrpzhb+J5cigdcCyubWNfDaLX0gWSqsDuy5BVgGjIeFX0yA2eplyNN9ueyY7gxVVAZg4Ju/Ac8DWy4QAGytK4IxUyqKRPq8EpkkXiO0Powx+KRWzmS0fBcDmLSixw7cxYtHD2e8XzlnbABmtIfnoG1uSDfVGAJbwo9fXdE8Zp9lgqmupCyfTZFlC7HUsu/rVX7z/pjeHzrzORiM+gXx2ZG5ioVUHSxh6f4lqkbu5UdIeXKyejWLCC+OMxlgzfwaLNtbr49PHEzBC9U4w2ZcBUsRCHNepJnnR+Kc2JqEb30s3xfTOommXUeb8PWh6PsMELSG5Uk17LldN5G0fdjb+S18/x1aWtdp1O2be9He8TFuSBtojSdhaA5ymbFC15agZ/dPLHbQN2UzMf765RyM52mu2jq/BFKX4cc/BYzBig0pSHwnDo7N9Fk42sSJrj71kR6smRZScTyjZWMKx38YV+fLmpiYDGPH4RhO96fLcubEaIKvD5/XIKRtlnbcQ0vHPVhirFj3GRgWsL64GrnMOB3efpXy2fvTYYYjzZzYkgTuXgSWb1MlI0OD2gVMwM6fGzA6JN4i7YrVWx+AfcbJ/jTywd6UmaBmUmUS6tMrUe3NRT2PcKp/ApbTICPNDdz+E9h5pNGNlQLUK9KLa7p6YSQPhYZ1+be4PjQICaFiD0finM9OT1znM3G2dZewWWthn9wAS3zBgk+hlEigI0hOHhkeZHlPwkt0JWEXtrmZMh1FVUzNMxlysVUdOgCfv3ipaoV4ycqNoqAqkWC6nYhAnuceGoPMnWsyBf83zHIoWTjazI2tm5x37Dukb/3mLMEWH+X+0PXZSNMwDTHW9z7W6h07cB/PH6e1eo2t3RzyCE2rO0HMnCupXCUomfjq2sAinRJkHk7te3DzVzS0duvHxLJfVZyGGVvVBZmsmX9+x7OS09l4ahMBST9WAYnxpPudBeQrPXPoyXyTD+UHH9bi7eucWjpXtqcIZWHf14RL4yp5CaRHZe3Nq39hC0V5H/4DaMOkaugQLoQAAAAASUVORK5CYII=') },
+    doctor: { down: makeImg('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB8AAAAJCAYAAADKIfe/AAAB7klEQVR4XrVTTWtTURA9c2MWujTpS3yh1ebjgf4Bm/gDhC7EhdAPF25c+geqEKNCceu+y7TYjQsLpd250Ab/QpukbizEJghii9j3ZmTm5sOtQgYej7nvzcw5Z84lDCMIy0LkLOt9PaTR+TTDhoRzN+X2NbFk88VDCMcgTURwefHl1IC4fCES1mFDiiIJ4AhCBHEOZ7t1mQkrMg0FLjEnqM2mrLexhShhfcGl0oC7MAUm61EgHirpTyD0Tv5vTU73TGPeytijIOfAEltzCCM/f0vUF2dz1/FmfwecTqF9+BHto0/48fNUcv+gTlCIRB/SojtD5iN+zcaSB6AGJEL86xzvZh8hTmI8vf8AwgwSQafdwvvuAPeKWS/VOASlcs2Aq5p/KxOEkWSCDAanA1CuEEnuSoLS1TRIJi10bvP5EkQE/PsclSe7SOILdDsHXg3zo8A5k8qP9Vuw81Klirvrr+Ccw95aHSIMR6omIxNkMfjW91UKoBpqoa5Ag9FsLENYsNLYxtaHg3F/m8GCUlTDl41V3Hi8iePO5wnnoSMEjGK5isXX68OOPvbXniGbn0G/14e/2AS0ToDu9xgJMxIGVupvsdrYNq8VKwvWTEbSOsLxxrJnCcJ8ecGYKWMzLImtrHPUMqZxkth3b9zJzf0DlynXilZJP+sAAAAASUVORK5CYII='), zombie: makeImg('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAAcCAYAAABsxO8nAAADkklEQVR4XoVVz29UVRT+zr2vxX/AmM6Mry1JxzeltbgghIQoAZsxEBI1ulAjkNDgggRboQJujInRNjZBipEYf0CMYVHUlcqiQqKJS4J0ilPAGGYcCyFhwYwbfsw95pw7zszrTNuTzLx3333vu9/5znfPJSwTYRgxqHWyWFho8xQIlr4a9mQYYDzZ1QEGA01oMnKI2BCheCMfA4wNHg8jHugKQAQQUW2yCYwA51jnLv9zD6Xitfr3ppmRB/BP/EVAGld5Zo0B2HNtjnhqJO8whPr/cHKbHXsMYAPBcM5hYrzUIl+MkWPC3M0HfjXFYmRHuwB4EEG1Vhi5WFoSMaBSIU/kBIPBrkbeOAXZ9eosHDNef+XntnWOATWgCTveTqmokhKY8PWZYZXs9DfPLl2/lZEm4+RPHOCQHU3CGK+XcwSuEqyhJg0b0dZcYsahVKfqI2kJs/fH/gKpVq0eatFIIuzOCB+sHfsAv1+6W3MAYSF3Dvn5HzXNVUMMWanc1F+iO+I3z/7Ae8Y3cCJMczJMcypML7VPPeo+EiZX5s9rGuolACMb12Pb4Qf4c/4XMFe1msZ2cjrarP6ytkO1Kdz4o+48JFN9vGPTWkx9dVonZeko8zRcsAbXc77krJXwmhkyOPXTLn1z4lDBM0qk+vjIVC92b/+yrr7stKv5X2uQjMzAVn8vTMji/v17ODLVAxMYlIpXvXCJZB/fLf/NJ848x5XKIid71nG57LWS8clv5bkffzKT5emZbItWdY0MBdiz85T3DAiZwW1gOFEFlh8i99qLmHznOxgrjNpULplKc7m8yJXKLf63cktX7eod5Nt3Cvxo71CsUqnuDKek4bUJQ7IEAUff2NvUNBiPdEhFCIG19c9kL5aK7TukbCSMj+yNrXF9bhZPDA7j488/xdzlC8pkNRMadg6BNfjwsy9ijeza/HmMj+xT/0B+q4Tu/gkF8f7IDG6tbQNGPjcLY6QerU1iaRhrrTb5gaFhHD53Ec9/NKGaqelAePfAflzJzSLs7l8xPVMs5CnKbMHOyUmIrMb60yNat0W3ynvTJ5SV44crJqc+ElcIeXHN9wdG8Vv6KZQKCxT1P8MvHDsG277bxMKEYT+/NH0c0lnlhDDG4OKFGd+xWcC9ZC8fn16RkXHiYwYCC5x962Bj3yhTRqc10CbJTjvEcmgkPahKhCr79MhVsVhqHHyJMNJGJ+d3AMZyhvwPUTV1kV9zcXMAAAAASUVORK5CYII=') },
+    civilian: { down: makeImg('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAKCAYAAACjd+4vAAACS0lEQVR4XrVUO28TQRD+Zu9sCiAxKBA7xvIDh8RGKCXkQZECUUEsBBL/ACJAICER8ScooAY3EaJAIKiQAUEBSBQUoBg7iTExtrBxE3cp7NtBM2eHigKJrHS3t3uz8z1m7gj9MZbKsrUWxhj8rH6lwf5ODQUIJzNMhjAdceEYwrtGF57XgyEHrY3SjpBwBZjBmI0E9MkQoXLvvC+UGekbT7lZWfnv4BROiFpgJuxC5vztnNowfu0x1u9e0L3k4iO0a2u+O4ksM1kwWxA5So4cB61vxX8iR+HEJM8eCoLAICKI5flbCyIewoBBSC0+BBlH3bBeD6/Oxf+UnhmnnjfBXhcmGESz8ncCkeRRZli0vpdIrRZQuQvwg6UFMDMgJORi4MWV45g4lkK18N7fl2gyqlrWL3NjSmS1vomrNivJEJ2aR+PzGy2f5JHQPcND2Dt8QJCYRuOTfDIW0JdKQlQyYMjg/tJZBbDdLmpvP8Iy8KXWwVbPYjq9X11RFAIMgLVGB8vpS7r2W8T2AwBrPRQLyxjaN4pGtQRXavih2cVMJNCPJ7VUQA0I5ZUN7PrVVDKOMZhKhNC1jGfFtgKIZacnRpSx5/mk1REtEum+kHMMEBqJ6qxODj6nuag7IOqrZ0Z7y0N5EyiciaBc7yATC2lWtU4QfLGIz58ABXYjeTmPuYs3YRyDH+tlsJUGBGLjGZGM+qfXqFeL2+dwMH5kO42f1LeIjNHDgyEgxnVgPU9/NBLnuC5W7+Q0/vD1J36v9GumwBonNfGtEDeluX4DmR3hjcV1CRwAAAAASUVORK5CYII='), zombie: makeImg('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAAcCAYAAABsxO8nAAADYklEQVR4XoVVS2gTURQ9701bEYu/hb+GafpJTVoLNvGzUFwqiD9EhepGV1VUrFV04UIRQRF/Gz8VEd2IKAhqxZVb0RpbwU+laU0am2rdqCgobeZduXeSNGPS9gaSmZf3zjv3nPNmgEmqsiZIW1YtpsnmqWITKmtDFJlXiu5hB/HYe7W8MUTDfwjZ2YnYx4J1RYH8DDS/DEoBlOHC19mKfkuDHIOBWE9uVP/PyB8YA+HimVopqDykpXNKChrxjPgD9RSZWyKLZStZTHIdOdIIRQRSwLWDrz1suLyMDOH111FwN9IREZRWiBxtAJEB8SgBLRfCqAyEPAZ4gBL9PSrR5/btNq9ALJLo7H6Y5aHt9yZhBKCyNkisycD3ESw5skh+eWvDwnObzNJJF2hUIDY5Gp1fRqAVwRjC5lNNwkQzMcOQCmfvNBcAFbVfmAVCxLu0nG+C0hrr/c2u9gpYs+EwkhkJsjU+UG2I9lxqAgwEKG0M2tu6kOwrDOOYpv+VHQjR/Q1+2eVG1xD+OkDocIMAXj0YdQ3gbIkZEHZFGZ1+tIMGLr7FrqYKaUXc0rzIiIMMxAG91Z2C3boIl1uj3kBy2TV1xBbwF8kZ4fywbYRtD/uh+EZrOMZgsL9X2Z8dsrQbYk91tq2jm91J7Az73HEyUEq7YZR74MG7YczeF8S1tjdI9H3Iy12mKqpD9GCj382LVoDRgAVhIm0JGJ87jd3nwjAwOLbxrgB5zloptyLHi0EI56NJHFpmy2lL9vXm2PtrGuiyiD7WjKe1561rySpRUIY9d58hWx/HM84Utz1b3mQrwmjawfHng1DKPelMcbzs5JcHqLkjjhPfwzi5whbLzzirPfQnKk9rmw5cIuM4IirrYrHgALqe3kAy5rozXuUY2YF6UmSgs4uftMsuv17chmHNJqkckEmPYuTlTWET7WhHKt6rXj25jukrm7H/Yhi+6oUTvknEfl91LS1dt1dAOjuuYCgRkzbIOIAzBS+fNUKXdE/ISRhZutRVJZuhTKXiDKhAaioia1smFntBVR1NKZ8FgsHo75/SUv6Kiqo6Ki2fKZuM/P6B1Cfv/7kcue8JN/pl5TNkYT5Q9iXAJ75s2gz4aoJFtVK+qiBZjoW05YhLg/HCBNt2A6WttDw6Up+KJ/wfhCNnO6vaVJAAAAAASUVORK5CYII=') },
+};
+const ZOMBIFY_START = 1500, ZOMBIFY_MS = 600; // 汚染で死んだ時：倒れてから起き上がってゾンビになる
+
 function drawPlayerDeath(frames, x, groundY) {
     const img = frames && frames[0];
     if (!img || !img.complete) return;
@@ -2409,11 +2418,45 @@ function drawPlayerDeath(frames, x, groundY) {
         }
     }
 
+    const ds = state.selectedClass && PLAYER_DEATH_SPRITES[state.selectedClass.id];
+    const footX = x + knock + 10 * S, footY = groundY;
+    ctx.imageSmoothingEnabled = false;
+
+    // 汚染：倒れたあと、ゾンビになって起き上がる
+    if (playerDeath.cause === 'infection' && ds && ds.zombie.complete && t >= ZOMBIFY_START) {
+        const z = ds.zombie, zw = z.naturalWidth * S, zh = z.naturalHeight * S;
+        const k = Math.min(1, (t - ZOMBIFY_START) / ZOMBIFY_MS);
+        const rise = 1 - Math.pow(1 - k, 2);
+        const tt = t - ZOMBIFY_START - ZOMBIFY_MS;
+        const sway = k < 1 ? 0 : Math.round(Math.sin(tt * 0.003) * 4);   // よろよろ前後にゆれる
+        const bob = k < 1 ? 0 : Math.round(-Math.abs(Math.cos(tt * 0.004)) * 2);
+        let zs = z;
+        if (k < 1 && Math.floor(t / 70) % 2 === 0) zs = tintCanvas(z, z.naturalWidth, z.naturalHeight, '#a3e635', 0.7);
+        // 地面から下は見せない（地中からせり上がるように）
+        ctx.save();
+        ctx.beginPath(); ctx.rect(0, 0, canvas.width, footY); ctx.clip();
+        ctx.drawImage(zs, Math.round(x + knock + sway), Math.round(footY - zh * rise + bob + (1 - rise) * 6), zw, zh);
+        ctx.restore();
+        if (k < 1 && ds.down.complete) { // 起き上がるあいだ、倒れた体はうすれて消える
+            ctx.globalAlpha = 1 - k;
+            const d = ds.down;
+            ctx.drawImage(tintCanvas(d, d.naturalWidth, d.naturalHeight, st.body, st.bodyA), Math.round(footX + 8 - d.naturalWidth * S), footY - d.naturalHeight * S, d.naturalWidth * S, d.naturalHeight * S);
+            ctx.globalAlpha = 1;
+        }
+        return;
+    }
+    // 倒れきったら、倒れた姿の絵に切りかえる
+    if (fallT >= 1 && ds && ds.down.complete) {
+        const d = ds.down;
+        const ds2 = st.body ? tintCanvas(d, d.naturalWidth, d.naturalHeight, st.body, st.bodyA * Math.min(1, t / 900)) : d;
+        ctx.drawImage(ds2, Math.round(footX + 8 - d.naturalWidth * S), footY - d.naturalHeight * S, d.naturalWidth * S, d.naturalHeight * S);
+        return;
+    }
+
     // 体：足元を軸に、後ろ（左）へ倒れる
     let sprite = img;
     if (t < 260 && Math.floor(t / 65) % 2 === 0) sprite = tintCanvas(img, 32, 32, st.flash, 0.85);
     else if (st.body) sprite = tintCanvas(img, 32, 32, st.body, st.bodyA * Math.min(1, t / 900));
-    const footX = x + knock + 10 * S, footY = groundY;
     ctx.save();
     ctx.imageSmoothingEnabled = false;
     ctx.translate(Math.round(footX), footY);
@@ -2432,7 +2475,8 @@ function drawPlayerDeathOverlay() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
     // だんだん暗くなる（まわりから）
-    const dk = Math.min(1, Math.max(0, (t - 900) / 1300));
+    const zombify = playerDeath.cause === 'infection'; // ゾンビになって起き上がるのを見せてから暗くする
+    const dk = Math.min(1, Math.max(0, (t - (zombify ? 2000 : 900)) / 1300));
     if (dk > 0) {
         const g = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 60, canvas.width / 2, canvas.height / 2, canvas.width * 0.7);
         g.addColorStop(0, `rgba(2,0,6,${0.35 * dk})`);
@@ -2441,7 +2485,7 @@ function drawPlayerDeathOverlay() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
     // GAME OVER の文字
-    const tk = Math.min(1, Math.max(0, (t - 1400) / 700));
+    const tk = Math.min(1, Math.max(0, (t - (zombify ? 2400 : 1400)) / 700));
     if (tk > 0) {
         ctx.save();
         ctx.globalAlpha = tk;
