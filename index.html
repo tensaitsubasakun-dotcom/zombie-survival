@@ -785,6 +785,22 @@ const AudioFX = {
                 gain.gain.linearRampToValueAtTime(0.35, now + 0.15);
                 gain.gain.linearRampToValueAtTime(0, now + 1.4);
                 osc.start(now); osc.stop(now + 1.4);
+            } else if (type === 'splat') {
+                // ゾンビがつぶれる音
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(45, now + 0.22);
+                gain.gain.setValueAtTime(0.22, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                osc.start(now); osc.stop(now + 0.25);
+            } else if (type === 'death') {
+                // 主人公がやられた：ゆっくり沈んでいく音
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(330, now);
+                osc.frequency.exponentialRampToValueAtTime(55, now + 1.6);
+                gain.gain.setValueAtTime(0.28, now);
+                gain.gain.linearRampToValueAtTime(0, now + 1.6);
+                osc.start(now); osc.stop(now + 1.6);
             } else if (type === 'boom') {
                 // 撃破の爆発音
                 osc.type = 'square';
@@ -1899,6 +1915,7 @@ function addLog(msg, type = 'normal') {
 // ==========================================
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+let zctx = ctx; // ゾンビを描く先（撃破エフェクトのために別のキャンバスへ写すことがある）
 let animFrameId = null;
 let animTick = 0;
 let bgScroll = 0; // 背景スクロール量（歩いている間だけ進む）
@@ -1952,12 +1969,25 @@ function renderCanvas() {
 
     const stageIdx = Math.min(Math.floor((state.phase - 1) / 10), 9);
 
+    // 撃破・死亡の衝撃で画面がゆれる
+    const deathShake = getDeathFxShake();
+    ctx.save();
+    if (deathShake) ctx.translate(Math.round((Math.random() - 0.5) * deathShake * 2), Math.round((Math.random() - 0.5) * deathShake * 2));
+
     // 1. 背景描画 (ステージ別のドット絵風景)
     drawStageBackground(stageIdx);
 
     // 2. プレイヤー描画
     const walkFrames = state.selectedClass && CLASS_WALK_FRAMES[state.selectedClass.id];
-    if (walkFrames) {
+    if (playerDeath && state.eventStatus === 'GAMEOVER') {
+        // やられた相手は、そのまま立っている
+        const k = playerDeath.killer;
+        if (k) {
+            if (k.big && !ENEMY_SPRITES[k.type]) drawScaledZombie(330, 240, 2, animTick, null);
+            else drawPixelZombie(320, 248, animTick, k.type);
+        }
+        drawPlayerDeath(walkFrames, 80, 240);
+    } else if (walkFrames) {
         drawWalkSprite(walkFrames, 80, 240, animTick);
     } else {
         drawPixelPlayer(80, 200, animTick);
@@ -1987,9 +2017,13 @@ function renderCanvas() {
         drawShelterTent(340, 240); // 地面(y=240)にテントを立てる
     }
 
+    drawEnemyFx();
+    ctx.restore();
+
     // 雨・環境パーティクル
     drawWeatherParticles(stageIdx, animTick);
     drawBossFxOverlay();
+    drawPlayerDeathOverlay();
 
     animFrameId = requestAnimationFrame(renderCanvas);
 }
@@ -2124,12 +2158,12 @@ const HORDE_FORMATION = [
 
 function drawHorde(x, y, tick) {
     for (const z of HORDE_FORMATION) {
-        ctx.save();
-        ctx.translate(x + 10 + z.dx, y - 8 + z.dy);
-        ctx.scale(z.s, z.s);
-        if (z.b < 1) ctx.filter = `brightness(${z.b})`;
+        zctx.save();
+        zctx.translate(x + 10 + z.dx, y - 8 + z.dy);
+        zctx.scale(z.s, z.s);
+        if (z.b < 1) zctx.filter = `brightness(${z.b})`;
         drawPixelZombie(-10, 8, tick + z.ph, 'normal');
-        ctx.restore();
+        zctx.restore();
     }
 }
 
@@ -2143,21 +2177,283 @@ function drawPixelZombie(x, y, tick, type = 'normal') {
     const feetY = y - 8;
     if (!sp.img.complete) return;
     const scale = sp.scale || SPRITE_SCALE; // 敵ごとに大きさを変えられる
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(sp.img, Math.round(centerX - sp.center * scale), Math.round(feetY - sp.bottom * scale + bob), sp.img.naturalWidth * scale, sp.img.naturalHeight * scale);
+    zctx.imageSmoothingEnabled = false;
+    zctx.drawImage(sp.img, Math.round(centerX - sp.center * scale), Math.round(feetY - sp.bottom * scale + bob), sp.img.naturalWidth * scale, sp.img.naturalHeight * scale);
 }
 
 // 大型ゾンビ（タイタン・ボス）。groundX/groundY は足元の位置
 function drawScaledZombie(groundX, groundY, scale, tick, tint) {
-    ctx.save();
-    ctx.translate(groundX, groundY);
-    ctx.scale(scale, scale);
+    zctx.save();
+    zctx.translate(groundX, groundY);
+    zctx.scale(scale, scale);
     if (tint) {
-        ctx.shadowColor = tint;
-        ctx.shadowBlur = 12;
+        zctx.shadowColor = tint;
+        zctx.shadowBlur = 12;
     }
     drawPixelZombie(-10, 8, tick);
+    zctx.restore();
+}
+
+// ==========================================
+// 撃破・死亡のエフェクト
+// ゾンビを倒した時：白く光って吹き飛び、ドットがばらばらに崩れて消える（ロケランは爆発）
+// 主人公がやられた時：赤く光って後ろに倒れ、血だまり（汚染なら緑、空腹なら青白く）が広がって GAME OVER
+// ==========================================
+const ENEMY_DEATH_MS = 1200;
+const PLAYER_FALL_START = 280, PLAYER_FALL_MS = 520;
+const fxList = [];
+let playerDeath = null; // { start, cause, killer }
+
+function resetDeathFx() { fxList.length = 0; playerDeath = null; }
+
+// 敵の今の絵を、別のキャンバスに写し取る（ドットに分解するため）
+function snapshotEnemy(type, big) {
+    const off = document.createElement('canvas');
+    off.width = canvas.width; off.height = canvas.height;
+    const c = off.getContext('2d');
+    c.imageSmoothingEnabled = false;
+    const prev = zctx; zctx = c;
+    try {
+        if (big && !ENEMY_SPRITES[type]) drawScaledZombie(330, 240, 2, animTick, null);
+        else drawPixelZombie(320, 248, animTick, type);
+    } finally { zctx = prev; }
+    return off;
+}
+// 絵をひとつの色に染めたもの（白く光る・赤く光る・緑に変わる など）
+function tintCanvas(src, w, h, color, alpha) {
+    const off = document.createElement('canvas');
+    off.width = w; off.height = h;
+    const c = off.getContext('2d');
+    c.imageSmoothingEnabled = false;
+    c.drawImage(src, 0, 0, w, h);
+    c.globalCompositeOperation = 'source-atop';
+    c.globalAlpha = alpha;
+    c.fillStyle = color;
+    c.fillRect(0, 0, w, h);
+    return off;
+}
+
+function spawnEnemyHit(enemy) {
+    const snap = snapshotEnemy(enemy.type, enemy.big);
+    fxList.push({ kind: 'hit', start: performance.now(), flash: tintCanvas(snap, snap.width, snap.height, '#ffffff', 0.9) });
+}
+
+function spawnEnemyDeath(enemy, weaponId) {
+    const snap = snapshotEnemy(enemy.type, enemy.big);
+    const W = snap.width, H = snap.height;
+    const data = snap.getContext('2d').getImageData(0, 0, W, H).data;
+    const B = 4; // 4×4ピクセルずつのかけらにする
+    const pieces = [];
+    let minX = W, maxX = 0, minY = H, maxY = 0;
+    for (let y = 0; y < H; y += B) for (let x = 0; x < W; x += B) {
+        const i = ((y + 2) * W + (x + 2)) * 4;
+        if (data[i + 3] < 120) continue;
+        pieces.push({ x, y, c: `rgb(${data[i]},${data[i + 1]},${data[i + 2]})` });
+        if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y;
+    }
+    if (!pieces.length) return;
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    const w = Math.max(1, maxX - minX), h = Math.max(1, maxY - minY);
+    const boom = weaponId === 'rocket_launcher';
+    const power = boom ? 3.2 : weaponId === 'shotgun' ? 1.8 : 1;
+    for (const p of pieces) {
+        const nx = (p.x - cx) / w, ny = (p.y - cy) / h;
+        p.vx = (1.2 + nx * 2.2 + Math.random() * 1.6) * power;       // 撃たれた方向（右）へ飛ぶ
+        p.vy = (-1.5 - Math.random() * 2.5 + ny * 1.2) * power;
+        p.delay = boom ? Math.random() * 40 : 120 + (p.y - minY) / h * 160 + Math.random() * 60; // 上から順に崩れる
+    }
+    // 血しぶき（スプレッダーは緑の体液）
+    const gore = enemy.deathGas ? ['#65a30d', '#84cc16', '#3f6212'] : ['#7f1d1d', '#b91c1c', '#450a0a'];
+    const drops = [];
+    for (let k = 0; k < (boom ? 40 : 22); k++) {
+        drops.push({ x: cx + (Math.random() - 0.3) * w * 0.5, y: cy + (Math.random() - 0.5) * h * 0.4,
+            vx: (0.5 + Math.random() * 3.5) * power, vy: (-1 - Math.random() * 4) * power,
+            s: 2 + Math.floor(Math.random() * 3), c: gore[k % gore.length], delay: 100 + Math.random() * 80 });
+    }
+    // 着弾の火花（ハンドガン・ショットガン）／爆炎（ロケットランチャー）
+    const hx = boom ? cx : cx - w * 0.25, hy = boom ? cy : cy - h * 0.15;
+    const sparks = [];
+    const n = boom ? 70 : weaponId === 'shotgun' ? 22 : 12;
+    for (let k = 0; k < n; k++) {
+        sparks.push(boom
+            ? { a: Math.random() * Math.PI * 2, dist: 20 + Math.random() * 75, size: 6 + Math.random() * 8, life: 300 + Math.random() * 350,
+                delay: Math.random() * 60, c0: '#fef3c7', c1: '#fb923c', c2: '#57534e' }
+            : { a: Math.PI + (Math.random() - 0.5) * 2.2, dist: 8 + Math.random() * 22, size: 3 + Math.random() * 2, life: 120 + Math.random() * 110,
+                delay: 0, c0: '#ffffff', c1: '#fde68a', c2: '#f59e0b' });
+    }
+    fxList.push({ kind: 'enemyDeath', start: performance.now(), snap, flash: tintCanvas(snap, W, H, '#ffffff', 0.95),
+        pieces, drops, sparks, hx, hy, cx, cy, groundY: 244, boom, gore: gore[0], w });
+    if (boom) AudioFX.play('boom'); else setTimeout(() => AudioFX.play('splat'), 90);
+}
+
+function startPlayerDeath(cause, killer) {
+    playerDeath = { start: performance.now(), cause, killer };
+    AudioFX.play('hit');
+    setTimeout(() => AudioFX.play('death'), 250);
+}
+
+// 画面のゆれ（今のエフェクトから計算）
+function getDeathFxShake() {
+    const now = performance.now();
+    let s = 0;
+    for (const f of fxList) {
+        const t = now - f.start;
+        if (f.kind === 'enemyDeath' && t < (f.boom ? 450 : 160)) s = Math.max(s, (f.boom ? 9 : 3) * (1 - t / (f.boom ? 450 : 160)));
+    }
+    if (playerDeath) {
+        const t = now - playerDeath.start;
+        if (t < 380 && playerDeath.cause !== 'hunger') s = Math.max(s, 8 * (1 - t / 380));
+        const land = PLAYER_FALL_START + PLAYER_FALL_MS;
+        if (t > land && t < land + 180) s = Math.max(s, 3 * (1 - (t - land) / 180)); // 地面に倒れこんだ衝撃
+    }
+    return s;
+}
+
+// 位置 = 初速 × 時間 + 重力。地面より下には落ちない
+function fallPos(x, y, vx, vy, t, ground) {
+    const f = t / 16.7;
+    let px = x + vx * f, py = y + vy * f + 0.18 * f * f;
+    if (py > ground) py = ground;
+    return [px, py];
+}
+
+function drawEnemyFx() {
+    const now = performance.now();
+    for (let i = fxList.length - 1; i >= 0; i--) {
+        const f = fxList[i];
+        const t = now - f.start;
+        if (f.kind === 'hit') {
+            if (t > 140) { fxList.splice(i, 1); continue; }
+            if (Math.floor(t / 45) % 2 === 0) ctx.drawImage(f.flash, 0, 0);
+            continue;
+        }
+        if (t > ENEMY_DEATH_MS) { fxList.splice(i, 1); continue; }
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        // 撃たれた瞬間：白く光って少し後ろへ下がる
+        if (t < 120 && !f.boom) {
+            ctx.drawImage(t < 60 ? f.flash : f.snap, Math.round(t / 120 * 6), 0);
+        }
+        // 着弾の火花／爆発（ドット絵に合わせて、四角いかけらで描く）
+        for (const s of f.sparks) {
+            const st = t - s.delay;
+            if (st < 0 || st > s.life) continue;
+            const k = st / s.life;
+            const r = s.dist * (1 - Math.pow(1 - k, 2));
+            const size = Math.max(2, Math.round(s.size * (1 - k * 0.6)));
+            ctx.globalAlpha = 1 - k * k;
+            ctx.fillStyle = k < 0.35 ? s.c0 : k < 0.7 ? s.c1 : s.c2;
+            ctx.fillRect(Math.round(f.hx + Math.cos(s.a) * r - size / 2), Math.round(f.hy + Math.sin(s.a) * r - size / 2 - (f.boom ? k * 14 : 0)), size, size);
+        }
+        if (f.boom && t < 90) { ctx.globalAlpha = 0.85 * (1 - t / 90); ctx.fillStyle = '#fff7ed'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+        ctx.globalAlpha = 1;
+        // 地面に残る血だまり
+        const poolK = Math.min(1, Math.max(0, (t - 250) / 400));
+        if (poolK > 0) {
+            ctx.globalAlpha = poolK * Math.min(1, (ENEMY_DEATH_MS - t) / 300);
+            ctx.fillStyle = f.gore;
+            const pw = Math.round(f.w * 0.9 * poolK);
+            ctx.fillRect(Math.round(f.cx + 10 - pw / 2), f.groundY - 3, pw, 4);
+            ctx.fillRect(Math.round(f.cx + 10 - pw / 3), f.groundY - 5, Math.round(pw * 2 / 3), 2);
+        }
+        // ばらばらに崩れるかけら
+        const fade = Math.min(1, Math.max(0, (ENEMY_DEATH_MS - t) / 450));
+        for (const p of f.pieces) {
+            const pt = t - p.delay;
+            if (pt < 0) { if (t >= 120 || f.boom) { ctx.globalAlpha = 1; ctx.fillStyle = p.c; ctx.fillRect(p.x + 6, p.y, 4, 4); } continue; }
+            const [x, y] = fallPos(p.x + 6, p.y, p.vx, p.vy, pt, f.groundY);
+            ctx.globalAlpha = fade;
+            ctx.fillStyle = p.c;
+            ctx.fillRect(Math.round(x), Math.round(y), 4, 4);
+        }
+        for (const d of f.drops) {
+            const pt = t - d.delay;
+            if (pt < 0) continue;
+            const [x, y] = fallPos(d.x, d.y, d.vx, d.vy, pt, f.groundY);
+            ctx.globalAlpha = fade;
+            ctx.fillStyle = d.c;
+            ctx.fillRect(Math.round(x), Math.round(y), d.s, d.s);
+        }
+        ctx.restore();
+    }
+}
+
+// 主人公がやられる：光る → 後ろへ倒れる → 血だまり → 暗くなって GAME OVER
+const DEATH_STYLE = {
+    hp:        { flash: '#ef4444', body: null,      bodyA: 0,    pool: ['#7f1d1d', '#991b1b'], screen: 'rgba(220,38,38,' },
+    infection: { flash: '#84cc16', body: '#4d7c0f', bodyA: 0.55, pool: ['#365314', '#4d7c0f'], screen: 'rgba(101,163,13,' },
+    hunger:    { flash: '#e2e8f0', body: '#94a3b8', bodyA: 0.45, pool: null,                   screen: 'rgba(148,163,184,' },
+};
+function drawPlayerDeath(frames, x, groundY) {
+    const img = frames && frames[0];
+    if (!img || !img.complete) return;
+    const now = performance.now();
+    const t = now - playerDeath.start;
+    const st = DEATH_STYLE[playerDeath.cause] || DEATH_STYLE.hp;
+    const S = SPRITE_SCALE, size = 32 * S;
+    const slow = playerDeath.cause === 'hunger' ? 1.8 : 1; // 飢えはゆっくり崩れ落ちる
+    const fallT = Math.min(1, Math.max(0, (t - PLAYER_FALL_START * slow) / (PLAYER_FALL_MS * slow)));
+    const ease = 1 - Math.pow(1 - fallT, 3);
+    const knock = playerDeath.cause === 'hunger' ? 0 : Math.min(1, t / PLAYER_FALL_START) * -10;
+
+    // 血だまり（倒れたあとに広がる）
+    if (st.pool) {
+        const k = Math.min(1, Math.max(0, (t - (PLAYER_FALL_START + PLAYER_FALL_MS) * slow) / 900));
+        if (k > 0) {
+            const pw = Math.round(70 * k);
+            const px = Math.round(x + knock - 22 * S + 6);
+            ctx.fillStyle = st.pool[0];
+            ctx.fillRect(px - pw / 2 + 20, groundY - 2, pw, 4);
+            ctx.fillStyle = st.pool[1];
+            ctx.fillRect(px - pw / 3 + 20, groundY - 4, Math.round(pw * 2 / 3), 2);
+        }
+    }
+
+    // 体：足元を軸に、後ろ（左）へ倒れる
+    let sprite = img;
+    if (t < 260 && Math.floor(t / 65) % 2 === 0) sprite = tintCanvas(img, 32, 32, st.flash, 0.85);
+    else if (st.body) sprite = tintCanvas(img, 32, 32, st.body, st.bodyA * Math.min(1, t / 900));
+    const footX = x + knock + 10 * S, footY = groundY;
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.translate(Math.round(footX), footY);
+    ctx.rotate(-Math.PI / 2 * ease);
+    ctx.translate(0, Math.round(ease * 4)); // 倒れたら少し地面に沈む
+    ctx.drawImage(sprite, -16 * S, -30 * S, size, size);
     ctx.restore();
+}
+function drawPlayerDeathOverlay() {
+    if (!playerDeath) return;
+    const t = performance.now() - playerDeath.start;
+    const st = DEATH_STYLE[playerDeath.cause] || DEATH_STYLE.hp;
+    // 一瞬、画面が赤（緑・白）く染まる
+    if (t < 320) {
+        ctx.fillStyle = st.screen + (0.45 * (1 - t / 320)) + ')';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    // だんだん暗くなる（まわりから）
+    const dk = Math.min(1, Math.max(0, (t - 900) / 1300));
+    if (dk > 0) {
+        const g = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 60, canvas.width / 2, canvas.height / 2, canvas.width * 0.7);
+        g.addColorStop(0, `rgba(2,0,6,${0.35 * dk})`);
+        g.addColorStop(1, `rgba(2,0,6,${0.85 * dk})`);
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    // GAME OVER の文字
+    const tk = Math.min(1, Math.max(0, (t - 1400) / 700));
+    if (tk > 0) {
+        ctx.save();
+        ctx.globalAlpha = tk;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = "44px 'DotGothic16', monospace";
+        ctx.fillStyle = '#000';
+        ctx.fillText('GAME OVER', canvas.width / 2 + 3, 120 + 3 + (1 - tk) * 10);
+        ctx.fillStyle = playerDeath.cause === 'infection' ? '#a3e635' : '#ef4444';
+        ctx.fillText('GAME OVER', canvas.width / 2, 120 + (1 - tk) * 10);
+        ctx.restore();
+    }
 }
 
 // セーフルームのテント（32×32のドット絵。29行目のペグは地面に刺さる）
@@ -2225,6 +2521,7 @@ function initClassSelectionUI() {
 
 function startGame() {
     if (!state.selectedClass) return;
+    resetDeathFx();
     
     // モーダル非表示
     document.getElementById('class-select-modal').classList.add('hidden');
@@ -2473,6 +2770,7 @@ function executeFight(weaponId) {
         const reward = enemy.reward ?? KILL_REWARD;
         state.gold += reward;
         addLog(`${weapon.icon} ${weapon.name}で撃破！${enemy.icon} ${enemy.name}を倒した！ 💰+${reward}G ${used}`, 'success');
+        spawnEnemyDeath(enemy, weaponId);
         // スプレッダーは倒すとガスを撒き散らす（ガスマスクで防げる）
         if (enemy.deathGas) {
             if (state.inventory.some(i => i.id === 'gas_mask')) {
@@ -2485,6 +2783,7 @@ function executeFight(weaponId) {
         advancePhaseCount();
     } else {
         // 倒しきれなければ反撃を受け、戦闘続行（フェーズは進まない）
+        spawnEnemyHit(enemy);
         enemyCounterAttack(enemy);
         addLog(`${weapon.icon} 命中！だが${enemy.name}はまだ倒れない (残りハンドガン${enemy.hp}発分)。反撃を受け ${enemy.dmg} ダメージ！`, 'danger');
     }
@@ -3846,7 +4145,11 @@ function checkGameOver() {
     if (state.eventStatus === 'GAMEOVER' || state.eventStatus === 'CLEAR') return; // 二重判定防止
     if (state.hp <= 0 || state.infection >= 100 || state.hunger <= 0) {
         if (state.eventStatus === 'SHELTER') closeStashPanel();
+        // やられた瞬間に目の前にいた敵（倒れる演出のあいだも残しておく）
+        const killer = state.eventStatus === 'ENCOUNTER' && state.currentEnemy ? { type: state.currentEnemy.type, big: state.currentEnemy.big } :
+                       state.eventStatus === 'BOSS' ? { type: 'boss' } : null;
         state.eventStatus = 'GAMEOVER';
+        startPlayerDeath(state.hp <= 0 ? 'hp' : state.infection >= 100 ? 'infection' : 'hunger', killer);
         const reason = state.hp <= 0 ? 'ダメージにより死亡した…' :
                        state.infection >= 100 ? '体が完全に腐敗し、ゾンビと化した…' : '飢えにより倒れた…';
         updateHUD(); // 死んだ時の値（汚染度100%・空腹度0など）をゲージに反映する
@@ -4128,6 +4431,7 @@ function showResumeButton() {
 function resumeGame() {
     const data = loadSaveData();
     if (!data) { showResumeButton(); return; }
+    resetDeathFx();
     Object.assign(state, data.state);
     state.selectedClass = CLASSES[data.state.selectedClass];
     bgScroll = data.bgScroll || 0;
