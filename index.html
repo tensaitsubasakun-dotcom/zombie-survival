@@ -2465,6 +2465,18 @@ function drawPlayerDeath(frames, x, groundY) {
     ctx.drawImage(sprite, -16 * S, -30 * S, size, size);
     ctx.restore();
 }
+// キャンバスのうち、実際に画面に見えている縦の範囲（スマホでは上下が切れて表示される）
+function getVisibleCanvasY() {
+    const cw = canvas.clientWidth, ch = canvas.clientHeight;
+    if (!cw || !ch) return [0, canvas.height];
+    const scale = Math.max(cw / canvas.width, ch / canvas.height);
+    const hidden = canvas.height - ch / scale;          // 見えていない縦の長さ（キャンバスの座標で）
+    if (hidden <= 0) return [0, canvas.height];
+    const posY = parseFloat((getComputedStyle(canvas).objectPosition || '50% 50%').split(' ')[1] || '50') / 100;
+    const top = hidden * posY;
+    return [top, canvas.height - (hidden - top)];
+}
+
 function drawPlayerDeathOverlay() {
     if (!playerDeath) return;
     const t = performance.now() - playerDeath.start;
@@ -2492,10 +2504,13 @@ function drawPlayerDeathOverlay() {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.font = "44px 'DotGothic16', monospace";
+        // 見えている範囲の、地面より上のまんなかあたりに出す（スマホで上が切れないように）
+        const [vTop] = getVisibleCanvasY();
+        const ty = Math.round(vTop + (230 - vTop) * 0.42) + (1 - tk) * 10;
         ctx.fillStyle = '#000';
-        ctx.fillText('GAME OVER', canvas.width / 2 + 3, 120 + 3 + (1 - tk) * 10);
+        ctx.fillText('GAME OVER', canvas.width / 2 + 3, ty + 3);
         ctx.fillStyle = playerDeath.cause === 'infection' ? '#a3e635' : '#ef4444';
-        ctx.fillText('GAME OVER', canvas.width / 2, 120 + (1 - tk) * 10);
+        ctx.fillText('GAME OVER', canvas.width / 2, ty);
         ctx.restore();
     }
 }
